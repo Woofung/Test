@@ -15,7 +15,7 @@
 (function() {
   const params = new URLSearchParams(location.search);
   const user = params.get('user') || '';
-  const HOME_URL = 'home.html';
+  const HOME_URL = 'index.html';
   function lsHistoryKey(u) { return 'studyhub.history.' + u; }
   window.QuizHistory = {
     user: user,
@@ -117,7 +117,7 @@
   .counter {
     position: absolute;
     top: 32px;
-    right: 40px;
+    right: 110px;
     font-family: 'Courier New', monospace;
     font-size: 22px;
     letter-spacing: 2px;
@@ -490,6 +490,11 @@
     /* 手機螢幕太小，結果畫面仍蓋滿 */
     .result-overlay {
       left: 0;
+    }
+    .counter { 
+      right: 90px;
+      top: 30px;
+      font-size: 18px;
     }
   }
   .result-overlay.show { display: flex; }
