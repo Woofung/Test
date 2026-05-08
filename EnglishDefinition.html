@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>單字考試 Vocabulary Quiz</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+// =====================================================
+// 學習中心整合
+// =====================================================
+(function() {
+  const params = new URLSearchParams(location.search);
+  const user = params.get('user') || '';
+  const HOME_URL = 'home.html';
+  function lsHistoryKey(u) { return 'studyhub.history.' + u; }
+  window.QuizHistory = {
+    user: user,
+    enabled: !!user,
+    save(record) {
+      if (!user) return false;
+      try {
+        const key = lsHistoryKey(user);
+        const arr = JSON.parse(localStorage.getItem(key) || '[]');
+        arr.push(record);
+        localStorage.setItem(key, JSON.stringify(arr));
+        return true;
+      } catch (e) { console.warn('儲存紀錄失敗:', e); return false; }
+    },
+    backHome() { location.href = HOME_URL; }
+  };
+  if (!user) return;
+  function injectBackButton() {
+    if (document.getElementById('quiz-back-home-btn')) return;
+    const btn = document.createElement('a');
+    btn.id = 'quiz-back-home-btn';
+    btn.href = HOME_URL;
+    btn.textContent = '← 學習中心';
+    btn.title = '回到學習中心(' + user + ')';
+    btn.style.cssText = "position:fixed;top:14px;left:14px;z-index:50;font-family:'Iowan Old Style',Palatino,serif;font-size:13px;letter-spacing:1px;color:#5a5048;background:rgba(244,237,224,0.85);padding:6px 12px;border:1px solid #c9bfa8;border-radius:2px;text-decoration:none;backdrop-filter:blur(4px);";
+    btn.addEventListener('mouseenter', () => { btn.style.background='#2a2620'; btn.style.color='#f4ede0'; btn.style.borderColor='#2a2620'; });
+    btn.addEventListener('mouseleave', () => { btn.style.background='rgba(244,237,224,0.85)'; btn.style.color='#5a5048'; btn.style.borderColor='#c9bfa8'; });
+    document.body.appendChild(btn);
+  }
+  if (document.body) injectBackButton();
+  else document.addEventListener('DOMContentLoaded', injectBackButton);
+})();
+</script>
+<style>
+  :root {
+    --paper: #f4ede0;
+    --paper-dark: #e8dcc4;
+    --ink: #2a2620;
+    --ink-soft: #5a5048;
+    --rule: #c9bfa8;
+    --accent: #b8442e;
+    --green: #4a7c3a;
+    --green-bg: #7fb069;
+    --red: #c9392c;
+    --red-bg: #e07856;
+    --yellow-bg: #f4d35e;
+    --gray: #9a9080;
+  }
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  html, body {
+    height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+    overflow: hidden;
+    transition: background 0.4s ease;
+  }
+  
+  body.correct-flash { background: var(--green-bg); }
+  body.wrong-flash { background: var(--red-bg); }
+  
+  /* ===== 螢幕切換 ===== */
+  .screen {
+    position: fixed;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+  }
+  .screen.active { display: flex; }
+  
+  /* ===== 頂部紙質紋理 ===== */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: 
+      repeating-linear-gradient(transparent 0, transparent 38px, rgba(180,160,120,0.08) 38px, rgba(180,160,120,0.08) 39px);
+    z-index: 0;
+  }
+  
+  /* ===== 設定畫面 ===== */
+  .setup {
+    max-width: 560px;
+    width: 100%;
+    z-index: 1;
+  }
+  .setup h1 {
+    font-family: 'Didot', 'Bodoni 72', 'Hoefler Text', serif;
+    font-size: 56px;
+    font-weight: 400;
+    letter-spacing: -1px;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  .setup .subtitle {
+    text-align: center;
+    color: var(--ink-soft);
+    font-style: italic;
+    margin-bottom: 48px;
+    letter-spacing: 1px;
+  }
+  
+  .field { margin-bottom: 32px; }
+  .field label {
+    display: block;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--ink-soft);
+    margin-bottom: 12px;
+  }
+  
+  .file-drop {
+    border: 2px dashed var(--rule);
+    border-radius: 4px;
+    padding: 32px;
+    text-align: center;
+    background: rgba(255,255,255,0.3);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .file-drop:hover, .file-drop.dragover {
+    border-color: var(--accent);
+    background: rgba(255,255,255,0.5);
+  }
+  .file-drop input { display: none; }
+  .file-drop .file-icon { font-size: 36px; margin-bottom: 8px; }
+  .file-drop .file-name {
+    margin-top: 12px;
+    color: var(--accent);
+    font-weight: bold;
+  }
+  
+  select, button {
+    font-family: inherit;
+    font-size: 18px;
+    width: 100%;
+    padding: 14px 16px;
+    border: 1.5px solid var(--ink);
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  select:disabled { opacity: 0.4; cursor: not-allowed; }
+  
+  .start-btn {
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 20px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    padding: 18px;
+    margin-top: 16px;
+    transition: all 0.2s;
+  }
+  .start-btn:hover:not(:disabled) {
+    background: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 0 var(--ink);
+  }
+  .start-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  
+  .info-text {
+    margin-top: 16px;
+    color: var(--ink-soft);
+    font-size: 14px;
+    text-align: center;
+  }
+  
+  /* ===== 考試畫面 ===== */
+  .quiz {
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    position: relative;
+  }
+  
+  .counter {
+    position: absolute;
+    top: 32px;
+    right: 40px;
+    font-family: 'Courier New', monospace;
+    font-size: 24px;
+    letter-spacing: 2px;
+    font-weight: bold;
+  }
+  .counter .c-correct { color: var(--green); }
+  .counter .c-wrong { color: var(--red); }
+  .counter .c-sep { color: var(--ink-soft); margin: 0 4px; }
+  .counter .c-total { color: var(--ink); }
+  
+  .round-tag {
+    position: absolute;
+    top: 32px;
+    left: 40px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding: 6px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+  }
+  .round-tag.review {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  
+  .word-display {
+    position: absolute;
+    top: 28%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    width: 90%;
+  }
+  .word-display .word {
+    font-family: 'Didot', 'Bodoni 72', 'Hoefler Text', serif;
+    font-size: 96px;
+    font-weight: 400;
+    letter-spacing: -2px;
+    line-height: 1;
+  }
+  .word-display .pos {
+    margin-top: 14px;
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+  .word-display .all-defs {
+    margin-top: 10px;
+    color: var(--ink-soft);
+    font-size: 15px;
+    letter-spacing: 0.5px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .word-display .all-defs.show {
+    opacity: 1;
+  }
+  
+  .options {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: min(900px, 90%);
+  }
+  
+  .option {
+    padding: 14px 20px;
+    border: 1.5px solid var(--ink);
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 20px;
+    text-align: center;
+    border-radius: 2px;
+    transition: background 0.05s, color 0.05s, border-color 0.05s;
+    cursor: pointer;
+    user-select: none;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+  .option .num {
+    font-family: 'Courier New', monospace;
+    color: var(--ink-soft);
+    margin-right: 12px;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  
+  .option.selected {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .option.selected .num { color: var(--paper); }
+  
+  .option.correct {
+    background: var(--yellow-bg);
+    color: var(--ink);
+    border-color: var(--ink);
+    font-weight: bold;
+  }
+  .option.correct .num { color: var(--ink); }
+  
+  .option.wrong-pick {
+    background: var(--gray);
+    color: rgba(255,255,255,0.7);
+    border-color: var(--gray);
+  }
+  .option.wrong-pick .num { color: rgba(255,255,255,0.7); }
+  
+  body.locked .option { cursor: default; }
+  
+  .hint {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+  }
+  .hint kbd {
+    font-family: 'Courier New', monospace;
+    border: 1px solid var(--rule);
+    padding: 2px 6px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.4);
+    margin: 0 2px;
+  }
+  
+  /* ===== 結果畫面 ===== */
+  .result {
+    width: min(800px, 92%);
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 48px 56px;
+    background: rgba(255,255,255,0.3);
+    border: 1px solid var(--rule);
+    z-index: 1;
+  }
+  .result h2 {
+    font-family: 'Didot', 'Bodoni 72', serif;
+    font-size: 24px;
+    font-weight: 400;
+    text-align: center;
+    margin-bottom: 24px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .result .fart-count {
+    font-family: 'Marker Felt', 'Comic Sans MS', 'Chalkboard', cursive;
+    text-align: center;
+    font-size: 56px;
+    line-height: 1.15;
+    margin-bottom: 36px;
+    color: var(--accent);
+    font-weight: bold;
+    transform: rotate(-2deg);
+    text-shadow: 3px 3px 0 var(--paper-dark);
+  }
+  .result .fart-count.zero {
+    color: var(--green);
+    transform: rotate(-1deg);
+  }
+  .result .fart-emoji {
+    display: inline-block;
+    font-size: 64px;
+    margin-right: 8px;
+    vertical-align: middle;
+    transform: rotate(-15deg) translateY(-4px);
+  }
+  .result .score {
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-size: 48px;
+    font-weight: bold;
+    margin-bottom: 8px;
+    letter-spacing: 4px;
+  }
+  .result .score .s-correct { color: var(--green); }
+  .result .score .s-wrong { color: var(--red); }
+  .result .score .s-total { color: var(--ink); }
+  .result .score .s-sep { color: var(--ink-soft); margin: 0 6px; font-weight: normal; }
+  .result .score-percent {
+    text-align: center;
+    color: var(--ink-soft);
+    font-size: 18px;
+    margin-bottom: 40px;
+    letter-spacing: 2px;
+  }
+  
+  .result .section-title {
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+  
+  .wrong-list { list-style: none; }
+  .wrong-list li {
+    padding: 12px 0;
+    border-bottom: 1px dashed var(--rule);
+    font-size: 17px;
+    line-height: 1.6;
+  }
+  .wrong-list .w-word {
+    font-family: 'Didot', serif;
+    font-size: 22px;
+    font-weight: bold;
+    margin-right: 16px;
+  }
+  .wrong-list .w-correct {
+    color: var(--green);
+    margin-left: 8px;
+  }
+  .wrong-list .w-x {
+    color: var(--red);
+    font-weight: bold;
+    margin: 0 8px;
+  }
+  .wrong-list .w-picked {
+    color: var(--red);
+    text-decoration: line-through;
+  }
+  .perfect {
+    text-align: center;
+    font-style: italic;
+    color: var(--green);
+    padding: 24px;
+    font-size: 20px;
+  }
+  
+  .result-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 40px;
+  }
+  .result-actions button { flex: 1; }
+  
+  .error-msg {
+    color: var(--red);
+    background: rgba(201,57,44,0.1);
+    border: 1px solid var(--red);
+    padding: 12px;
+    margin-top: 16px;
+    border-radius: 2px;
+    font-size: 14px;
+  }
+  
+  .saved-file {
+    background: rgba(255,255,255,0.5);
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+  }
+  .saved-file .saved-info {
+    flex: 1;
+    color: var(--ink-soft);
+  }
+  .saved-file .saved-info strong {
+    color: var(--accent);
+    font-weight: bold;
+  }
+  .saved-file .saved-info .meta {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 2px;
+  }
+  .saved-file button {
+    width: auto;
+    padding: 6px 12px;
+    font-size: 13px;
+    background: transparent;
+    border: 1px solid var(--ink-soft);
+    color: var(--ink-soft);
+  }
+  .saved-file button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  
+  @media (max-width: 600px) {
+    .word-display .word { font-size: 56px; }
+    .options { grid-template-columns: 1fr; gap: 8px; bottom: 32px; }
+    .option { padding: 14px; font-size: 17px; min-height: 52px; }
+    .counter { font-size: 18px; top: 16px; right: 16px; }
+    .round-tag { top: 16px; left: 16px; font-size: 11px; }
+    .result { padding: 32px 24px; }
+    .result h2 { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ 設定畫面 ============ -->
+<div class="screen active" id="setup-screen">
+  <div class="setup">
+    <h1>Vocabulary Quiz</h1>
+    <p class="subtitle">— 單字測驗 —</p>
+    
+    <!-- 隱藏的上傳區（保留 DOM 與相關 JS 邏輯，但不顯示） -->
+    <div class="field" style="display:none">
+      <label>上傳 Excel 檔</label>
+      <div id="saved-file-area"></div>
+      <label class="file-drop" id="file-drop">
+        <div class="file-icon">📖</div>
+        <div>點此選擇檔案，或拖曳檔案到此</div>
+        <div class="file-name" id="file-name"></div>
+        <input type="file" id="file-input" accept=".xlsx,.xls">
+      </label>
+      <div id="error-msg"></div>
+    </div>
+    
+    <div class="field">
+      <label>選擇章節</label>
+      <select id="chapter-select" disabled>
+        <option>字庫載入中…</option>
+      </select>
+    </div>
+    
+    <button class="start-btn" id="start-btn" disabled>開始考試</button>
+    <p class="info-text" id="info-text">操作：方向鍵選擇 · 空白鍵確認</p>
+    <div id="error-msg-visible" style="color: var(--accent); font-size: 14px; margin-top: 12px; text-align: center;"></div>
+  </div>
+</div>
+
+<!-- ============ 考試畫面 ============ -->
+<div class="screen" id="quiz-screen">
+  <div class="quiz">
+    <div class="round-tag" id="round-tag">FIRST ROUND</div>
+    <div class="counter">
+      <span class="c-correct" id="c-correct">00</span><span class="c-sep">/</span><span class="c-wrong" id="c-wrong">00</span><span class="c-sep">/</span><span class="c-total" id="c-total">00</span>
+    </div>
+    <div class="word-display">
+      <div class="word" id="word"></div>
+      <div class="pos" id="pos"></div>
+      <div class="all-defs" id="all-defs"></div>
+    </div>
+    <div class="options" id="options"></div>
+    <div class="hint">
+      <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 選擇 &nbsp;·&nbsp; <kbd>Space</kbd> 確認
+    </div>
+  </div>
+</div>
+
+<!-- ============ 結果畫面 ============ -->
+<div class="screen" id="result-screen">
+  <div class="result">
+    <h2>考試結束</h2>
+    <div class="fart-count" id="fart-count"></div>
+    <div class="score">
+      <span class="s-correct" id="r-correct">00</span><span class="s-sep">/</span><span class="s-wrong" id="r-wrong">00</span><span class="s-sep">/</span><span class="s-total" id="r-total">00</span>
+    </div>
+    <div class="score-percent" id="r-percent"></div>
+    
+    <div class="section-title">錯題回顧</div>
+    <div id="wrong-container"></div>
+    
+    <div class="result-actions">
+      <button id="retry-btn">同章節再來一次</button>
+      <button id="back-btn">回到主選單</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// =============== 音效（使用 Web Audio API 即時合成）===============
+let audioCtx;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playCorrectSound() {
+  // 三音上行琶音 — 雀躍
+  const ctx = getAudioCtx();
+  const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+  notes.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const start = ctx.currentTime + i * 0.07;
+    gain.gain.setValueAtTime(0, start);
+    gain.gain.linearRampToValueAtTime(0.18, start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.25);
+    osc.start(start);
+    osc.stop(start + 0.3);
+  });
+}
+
+function playWrongSound() {
+  // 短促但飽滿的放屁聲：低頻 + 顫動 + 尾音上揚
+  const ctx = getAudioCtx();
+  const start = ctx.currentTime;
+  const duration = 0.85;
+  
+  // 主音 — 低頻鋸齒波
+  // 頻率走勢：開頭 170Hz，前 60% 緩降到 110Hz，最後 40% 上揚到 220Hz（尾音上揚）
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(170, start);
+  osc.frequency.linearRampToValueAtTime(110, start + duration * 0.55);
+  osc.frequency.linearRampToValueAtTime(220, start + duration);
+  
+  // 顫音 LFO 模擬「噗噗噗」氣音感
+  const lfo = ctx.createOscillator();
+  const lfoGain = ctx.createGain();
+  lfo.frequency.value = 22;
+  lfoGain.gain.value = 28;
+  lfo.connect(lfoGain);
+  lfoGain.connect(osc.frequency);
+  
+  // 音量包絡：快速起音、中段穩定、尾段稍微再強調一下上揚
+  gain.gain.setValueAtTime(0, start);
+  gain.gain.linearRampToValueAtTime(0.55, start + 0.03);
+  gain.gain.setValueAtTime(0.55, start + duration * 0.55);
+  gain.gain.linearRampToValueAtTime(0.45, start + duration * 0.85);
+  gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
+  
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.05);
+  lfo.start(start);
+  lfo.stop(start + duration + 0.05);
+  
+  // 噪音層 — 加強氣感，尾段變稀薄
+  const bufferSize = Math.floor(ctx.sampleRate * duration);
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    const t = i / bufferSize;
+    const wobble = 1 + 0.35 * Math.sin(i / ctx.sampleRate * 22 * Math.PI * 2);
+    // 噪音在尾段衰減更快，讓上揚的主音更突出
+    const env = t < 0.55 ? (1 - t * 0.3) : (1 - t) * 1.2;
+    data[i] = (Math.random() * 2 - 1) * wobble * Math.max(0, env) * 0.5;
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.value = 0.35;
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  // 濾波器頻率也跟著上揚
+  filter.frequency.setValueAtTime(450, start);
+  filter.frequency.linearRampToValueAtTime(700, start + duration);
+  noise.connect(filter);
+  filter.connect(noiseGain);
+  noiseGain.connect(ctx.destination);
+  noise.start(start);
+}
+
+// =============== 工具函式 ===============
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// =============== 全域狀態 ===============
+let allRows = [];           // 全部 Excel 列
+let chaptersMap = {};       // { 'Chapter 1': [rows...], ... }
+let currentChapter = null;
+let questions = [];         // 當前題目陣列
+let qIndex = 0;
+let selectedIdx = 0;
+let locked = false;
+let stats = { correct: 0, wrong: 0, total: 0, wrongList: [] };
+let reviewQueue = [];       // 答錯的題目（會在第一輪結束後重考一次）
+let isReviewRound = false;
+
+// =============== Excel 處理 ===============
+const fileInput = document.getElementById('file-input');
+const fileDrop = document.getElementById('file-drop');
+const fileName = document.getElementById('file-name');
+const errorMsg = document.getElementById('error-msg');
+const chapterSelect = document.getElementById('chapter-select');
+const startBtn = document.getElementById('start-btn');
+const savedFileArea = document.getElementById('saved-file-area');
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) loadExcelFromFile(e.target.files[0]);
+});
+
+fileDrop.addEventListener('dragover', e => {
+  e.preventDefault();
+  fileDrop.classList.add('dragover');
+});
+fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  fileDrop.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) loadExcelFromFile(e.dataTransfer.files[0]);
+});
+
+function showError(msg) {
+  errorMsg.innerHTML = `<div class="error-msg">⚠ ${msg}</div>`;
+}
+function clearError() { errorMsg.innerHTML = ''; }
+
+// =============== IndexedDB（用來記住上次的 Excel）===============
+const DB_NAME = 'vocab-quiz-db';
+const STORE_NAME = 'files';
+const FILE_KEY = 'last-excel';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveExcelToDB(name, arrayBuffer) {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put({
+      name,
+      buffer: arrayBuffer,
+      savedAt: new Date().toISOString()
+    }, FILE_KEY);
+    return new Promise(resolve => {
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); resolve(); };
+    });
+  } catch (e) {
+    console.warn('無法儲存到 IndexedDB:', e);
+  }
+}
+
+async function loadExcelFromDB() {
+  try {
+    const db = await openDB();
+    return await new Promise(resolve => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(FILE_KEY);
+      req.onsuccess = () => { db.close(); resolve(req.result || null); };
+      req.onerror = () => { db.close(); resolve(null); };
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+async function clearSavedExcel() {
+  try {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).delete(FILE_KEY);
+    return new Promise(resolve => {
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); resolve(); };
+    });
+  } catch (e) {}
+}
+
+// =============== Excel 解析（核心）===============
+function parseExcelBuffer(arrayBuffer) {
+  const wb = XLSX.read(arrayBuffer, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rows = XLSX.utils.sheet_to_json(ws);
+  
+  if (!rows.length) {
+    throw new Error('檔案是空的');
+  }
+  
+  // 偵測欄位名稱（容錯處理：英文/中文）
+  const sample = rows[0];
+  const keys = Object.keys(sample);
+  const findKey = (...candidates) => {
+    for (const c of candidates) {
+      const found = keys.find(k => k.toLowerCase().includes(c.toLowerCase()));
+      if (found) return found;
+    }
+    return null;
+  };
+  
+  const kChapter = findKey('chapter', '章節', '章');
+  const kWord = findKey('vocabulary', 'word', '單字', '英文');
+  const kDef = findKey('chinese', 'definition', '解釋', '翻譯', '中文');
+  const kPos = findKey('part of speech', 'pos', '詞性');
+  
+  if (!kChapter || !kWord || !kDef) {
+    throw new Error('無法辨識欄位。需要包含「Chapter」、「Vocabulary」、「Chinese Explanation」欄位');
+  }
+  
+  allRows = rows.map(r => ({
+    chapter: String(r[kChapter] || '').trim(),
+    word: String(r[kWord] || '').trim(),
+    def: String(r[kDef] || '').trim(),
+    pos: kPos ? String(r[kPos] || '').trim() : ''
+  })).filter(r => r.chapter && r.word && r.def);
+  
+  // 除錯：印出有 3 個以上翻譯的字（在 Console 看 F12）
+  const multi = allRows.filter(r => r.def.split(';').length >= 3);
+  console.log(`[Excel 載入] 共 ${allRows.length} 字，其中 ${multi.length} 字有 3+ 個翻譯`);
+  if (multi.length > 0) {
+    console.log('範例：', multi.slice(0, 5).map(r => `${r.word} → ${r.def}`).join(' | '));
+  }
+  
+  // 分組
+  chaptersMap = {};
+  for (const r of allRows) {
+    if (!chaptersMap[r.chapter]) chaptersMap[r.chapter] = [];
+    chaptersMap[r.chapter].push(r);
+  }
+  
+  // 章節排序：依 Chapter 後的數字
+  const sortedChapters = Object.keys(chaptersMap).sort((a, b) => {
+    const na = parseInt(a.match(/\d+/)?.[0] || '0');
+    const nb = parseInt(b.match(/\d+/)?.[0] || '0');
+    return na - nb;
+  });
+  
+  chapterSelect.innerHTML = '';
+  sortedChapters.forEach(ch => {
+    const opt = document.createElement('option');
+    opt.value = ch;
+    opt.textContent = `${ch}（${chaptersMap[ch].length} 字）`;
+    chapterSelect.appendChild(opt);
+  });
+  chapterSelect.disabled = false;
+  startBtn.disabled = false;
+}
+
+// === 從使用者選的檔案讀取（會儲存到 DB）===
+function loadExcelFromFile(file) {
+  fileName.textContent = file.name;
+  clearError();
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const buffer = e.target.result;
+      parseExcelBuffer(buffer);
+      // 成功的話存到 IndexedDB 供下次使用
+      await saveExcelToDB(file.name, buffer);
+      renderSavedFileBanner(file.name, new Date().toISOString());
+    } catch (err) {
+      console.error(err);
+      showError('讀取檔案失敗：' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// === 從 IndexedDB 自動載入上次的檔案 ===
+async function tryAutoLoadSavedExcel() {
+  const saved = await loadExcelFromDB();
+  if (!saved) return false;
+  try {
+    parseExcelBuffer(saved.buffer);
+    fileName.textContent = saved.name;
+    renderSavedFileBanner(saved.name, saved.savedAt, 'local');
+    return true;
+  } catch (e) {
+    console.warn('自動載入失敗:', e);
+    await clearSavedExcel();
+    return false;
+  }
+}
+
+// === 啟動時嘗試從同個資料夾抓預設 Excel 檔（給雲端部署用）===
+// 把 Excel 放在跟 index.html 同一個資料夾，下面這個 DEFAULT_EXCEL_URL 指向它
+const DEFAULT_EXCEL_URL = 'vocabulary.xlsx';   // 相對路徑，會跟著網頁 host 走
+
+async function tryLoadDefaultExcel() {
+  try {
+    // 加上時間戳記參數避免瀏覽器/CDN 快取舊檔
+    const url = DEFAULT_EXCEL_URL + '?t=' + Date.now();
+    const resp = await fetch(url, { cache: 'no-store' });
+    if (!resp.ok) return false;
+    const contentType = resp.headers.get('Content-Type') || '';
+    // 確保抓到的真的是 Excel 檔，不是 GitHub 的 404 HTML 頁面
+    const buffer = await resp.arrayBuffer();
+    if (buffer.byteLength < 100) return false;
+    // 簡單檢查：xlsx 檔開頭是 PK (zip 格式)
+    const view = new Uint8Array(buffer.slice(0, 2));
+    if (view[0] !== 0x50 || view[1] !== 0x4B) return false;
+    
+    parseExcelBuffer(buffer);
+    fileName.textContent = DEFAULT_EXCEL_URL;
+    // 同時存到 IndexedDB 讓沒網路時也能用
+    await saveExcelToDB(DEFAULT_EXCEL_URL, buffer);
+    renderSavedFileBanner(DEFAULT_EXCEL_URL, new Date().toISOString(), 'cloud');
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function renderSavedFileBanner(name, savedAt, source) {
+  // banner 已從 UI 隱藏，只更新底部 info-text
+  const info = document.getElementById('info-text');
+  if (info) {
+    info.textContent = `共 ${allRows.length} 字 / ${Object.keys(chaptersMap).length} 章 · 方向鍵選擇 · 空白鍵確認`;
+  }
+}
+
+// 啟動載入順序：先試雲端最新版，失敗再用本機快取
+(async () => {
+  const cloudOk = await tryLoadDefaultExcel();
+  if (!cloudOk) {
+    const cachedOk = await tryAutoLoadSavedExcel();
+    if (!cachedOk) {
+      // 都沒有：顯示錯誤訊息
+      const visible = document.getElementById('error-msg-visible');
+      if (visible) visible.textContent = '字庫載入失敗，請確認 vocabulary.xlsx 是否在同一個資料夾，並重新整理頁面。';
+      const info = document.getElementById('info-text');
+      if (info) info.textContent = '';
+    }
+  }
+})();
+
+// =============== 開始考試 ===============
+startBtn.addEventListener('click', () => {
+  currentChapter = chapterSelect.value;
+  startQuiz(chaptersMap[currentChapter]);
+});
+
+function startQuiz(words) {
+  // 為每個字產生題目（亂數 7 個錯誤選項，從同章節抽）
+  const chapterPool = words;
+  questions = shuffle(words).map(w => buildQuestion(w, chapterPool));
+  qIndex = 0;
+  stats = { correct: 0, wrong: 0, total: questions.length, wrongList: [] };
+  reviewQueue = [];
+  isReviewRound = false;
+  
+  document.getElementById('round-tag').textContent = 'FIRST ROUND';
+  document.getElementById('round-tag').classList.remove('review');
+  
+  switchScreen('quiz-screen');
+  renderQuestion();
+}
+
+function buildQuestion(target, pool) {
+  // 完整多義串作為正確答案（例：符號;標誌;簽名）
+  const correctDef = target.def.trim();
+  const allDefs = correctDef.split(';').map(s => s.trim()).filter(Boolean);
+  
+  // 詞性顯示為完整對應版（例：noun;noun;verb）
+  const posDisplay = (target.pos || '').trim();
+  
+  // === 收集干擾選項 ===
+  // 規則：
+  //   1. 不能跟正確答案同字（target.word）
+  //   2. 干擾字的「完整解釋字串」不能等於正確答案的完整字串
+  //   3. 干擾字的「任一翻譯」不能與正確答案的任一翻譯重疊
+  //      → 例如 thermometer 解釋是「溫度計」，就不能挑到任何也含「溫度計」的字
+  //   4. 干擾選項彼此之間也不能重複（用完整字串比對）
+  
+  const correctDefSet = new Set(allDefs);
+  
+  function isValidCandidate(w) {
+    if (w.word === target.word) return false;
+    const wDefs = w.def.split(';').map(s => s.trim()).filter(Boolean);
+    if (!wDefs.length) return false;
+    for (const d of wDefs) {
+      if (correctDefSet.has(d)) return false;
+    }
+    return true;
+  }
+  
+  const validInPool = pool.filter(isValidCandidate);
+  const distractors = [];
+  const usedDefStrings = new Set([correctDef]);
+  
+  // 從同章節有效候選中抽
+  for (const w of shuffle(validInPool)) {
+    if (distractors.length >= 7) break;
+    const fullDef = w.def.trim();
+    if (usedDefStrings.has(fullDef)) continue;
+    distractors.push(fullDef);
+    usedDefStrings.add(fullDef);
+  }
+  
+  // 不夠的話從整本書補（仍套用相同規則）
+  if (distractors.length < 7) {
+    const validInAll = allRows.filter(isValidCandidate);
+    for (const w of shuffle(validInAll)) {
+      if (distractors.length >= 7) break;
+      const fullDef = w.def.trim();
+      if (usedDefStrings.has(fullDef)) continue;
+      distractors.push(fullDef);
+      usedDefStrings.add(fullDef);
+    }
+  }
+  
+  const allOptions = shuffle([correctDef, ...distractors]);
+  const correctIdx = allOptions.indexOf(correctDef);
+  
+  return {
+    word: target.word,
+    posDisplay,
+    allDefs,        // 仍保留，供結果頁可能使用
+    correctDef,
+    options: allOptions,
+    correctIdx
+  };
+}
+
+// =============== 渲染題目 ===============
+function renderQuestion() {
+  if (qIndex >= questions.length) {
+    // 第一輪完成，看是否需要進入複習輪
+    if (!isReviewRound && reviewQueue.length > 0) {
+      isReviewRound = true;
+      questions = reviewQueue.map(w => buildQuestion(w, chaptersMap[currentChapter]));
+      qIndex = 0;
+      reviewQueue = [];
+      const tag = document.getElementById('round-tag');
+      tag.textContent = `REVIEW · ${questions.length} 題`;
+      tag.classList.add('review');
+      // 短暫過場
+      setTimeout(renderQuestion, 100);
+      return;
+    }
+    showResult();
+    return;
+  }
+  
+  const q = questions[qIndex];
+  document.getElementById('word').textContent = q.word;
+  document.getElementById('pos').textContent = q.posDisplay || '';
+  
+  // 不再需要「答題後顯示完整翻譯」，選項本身已是完整翻譯
+  document.getElementById('all-defs').classList.remove('show');
+  
+  const optsDiv = document.getElementById('options');
+  optsDiv.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const div = document.createElement('div');
+    div.className = 'option';
+    div.dataset.idx = i;
+    div.innerHTML = `<span class="num">${String.fromCharCode(65 + i)}</span><span>${opt}</span>`;
+    div.addEventListener('mouseenter', () => {
+      if (locked) return;
+      selectedIdx = i;
+      updateSelection();
+    });
+    div.addEventListener('click', () => {
+      if (locked) return;
+      selectedIdx = i;
+      updateSelection();
+      submitAnswer();
+    });
+    optsDiv.appendChild(div);
+  });
+  
+  selectedIdx = 0;
+  locked = false;
+  document.body.classList.remove('locked');
+  updateSelection();
+  updateCounter();
+}
+
+function updateSelection() {
+  document.querySelectorAll('.option').forEach((el, i) => {
+    el.classList.toggle('selected', i === selectedIdx);
+  });
+}
+
+function updateCounter() {
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('c-correct').textContent = pad(stats.correct);
+  document.getElementById('c-wrong').textContent = pad(stats.wrong);
+  document.getElementById('c-total').textContent = pad(stats.total);
+}
+
+// =============== 提交答案 ===============
+function submitAnswer() {
+  if (locked) return;
+  locked = true;
+  document.body.classList.add('locked');
+  
+  const q = questions[qIndex];
+  const correct = (selectedIdx === q.correctIdx);
+  
+  const optEls = document.querySelectorAll('.option');
+  
+  if (correct) {
+    document.body.classList.add('correct-flash');
+    optEls[q.correctIdx].classList.add('correct');
+    if (!isReviewRound) stats.correct++;
+    playCorrectSound();
+  } else {
+    document.body.classList.add('wrong-flash');
+    optEls[q.correctIdx].classList.add('correct');
+    optEls[selectedIdx].classList.remove('selected');
+    optEls[selectedIdx].classList.add('wrong-pick');
+    
+    if (!isReviewRound) {
+      stats.wrong++;
+      stats.wrongList.push({
+        word: q.word,
+        correctDef: q.correctDef,
+        pickedDef: q.options[selectedIdx]
+      });
+      // 加入複習佇列
+      const original = chaptersMap[currentChapter].find(w => w.word === q.word);
+      if (original) reviewQueue.push(original);
+    }
+    playWrongSound();
+  }
+  updateCounter();
+  
+  // 1.2 秒後進入下一題
+  setTimeout(() => {
+    document.body.classList.remove('correct-flash', 'wrong-flash');
+    qIndex++;
+    renderQuestion();
+  }, 1200);
+}
+
+// =============== 鍵盤事件 ===============
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('quiz-screen').classList.contains('active')) return;
+  if (locked) return;
+  
+  const cols = 2;
+  const rows = 4;
+  const r = Math.floor(selectedIdx / cols);
+  const c = selectedIdx % cols;
+  
+  let newR = r, newC = c;
+  
+  if (e.key === 'ArrowUp') newR = (r - 1 + rows) % rows;
+  else if (e.key === 'ArrowDown') newR = (r + 1) % rows;
+  else if (e.key === 'ArrowLeft') newC = (c - 1 + cols) % cols;
+  else if (e.key === 'ArrowRight') newC = (c + 1) % cols;
+  else if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); submitAnswer(); return; }
+  else return;
+  
+  e.preventDefault();
+  selectedIdx = newR * cols + newC;
+  updateSelection();
+});
+
+// =============== 結果畫面 ===============
+function showResult() {
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('r-correct').textContent = pad(stats.correct);
+  document.getElementById('r-wrong').textContent = pad(stats.wrong);
+  document.getElementById('r-total').textContent = pad(stats.total);
+  const pct = ((stats.correct / stats.total) * 100).toFixed(1);
+  document.getElementById('r-percent').textContent = `正確率 ${pct}%`;
+  
+  // 放屁次數 = 第一輪答錯的次數
+  const fartEl = document.getElementById('fart-count');
+  if (stats.wrong === 0) {
+    fartEl.innerHTML = `<span class="fart-emoji">✨</span>一次屁都沒放！`;
+    fartEl.classList.add('zero');
+  } else {
+    fartEl.innerHTML = `<span class="fart-emoji">💨</span>放屁 ${stats.wrong} 次`;
+    fartEl.classList.remove('zero');
+  }
+  
+  const wc = document.getElementById('wrong-container');
+  if (stats.wrongList.length === 0) {
+    wc.innerHTML = '<div class="perfect">✦ 全部答對 ✦</div>';
+  } else {
+    const ul = document.createElement('ul');
+    ul.className = 'wrong-list';
+    stats.wrongList.forEach(w => {
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span class="w-word">${w.word}</span>
+        <span class="w-correct">${w.correctDef}</span>
+        <span class="w-x">×</span>
+        <span class="w-picked">${w.pickedDef}</span>
+      `;
+      ul.appendChild(li);
+    });
+    wc.innerHTML = '';
+    wc.appendChild(ul);
+  }
+
+  // === 寫入學習中心歷史紀錄 ===
+  if (window.QuizHistory && window.QuizHistory.enabled && stats.total > 0) {
+    try {
+      window.QuizHistory.save({
+        tool: 'vocab',
+        chapter: currentChapter || '',
+        correct: stats.correct,
+        wrong: stats.wrong,
+        total: stats.total,
+        wrongList: stats.wrongList.map(w => ({
+          word: w.word || '',
+          correctDef: w.correctDef || '',
+          pickedDef: w.pickedDef || ''
+        })),
+        date: new Date().toISOString()
+      });
+    } catch (e) { console.warn('save history failed', e); }
+  }
+  
+  switchScreen('result-screen');
+}
+
+document.getElementById('retry-btn').addEventListener('click', () => {
+  startQuiz(chaptersMap[currentChapter]);
+});
+document.getElementById('back-btn').addEventListener('click', () => {
+  switchScreen('setup-screen');
+});
+
+function switchScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+</script>
+</body>
+</html>

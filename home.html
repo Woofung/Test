@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>學習中心</title>
+<style>
+  :root {
+    --paper: #f4ede0;
+    --paper-dark: #e8dcc4;
+    --paper-card: #faf5e8;
+    --ink: #2a2620;
+    --ink-soft: #5a5048;
+    --rule: #c9bfa8;
+    --rule-light: #ddd0b0;
+    --accent: #b8442e;
+    --green: #4a7c3a;
+    --green-bg: #7fb069;
+    --red: #c9392c;
+    --yellow: #c8a84a;
+    --blue: #4a6f8a;
+    --purple: #8a5a8a;
+    --gray: #9a9080;
+  }
+
+  /* ===== 修改這裡來設定使用者列表 ===== */
+  /* 寫在 CSS 裡面只是註解，下方 JS 區段才是真正的列表 */
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    min-height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+  }
+
+  /* 紙張紋理 */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      repeating-linear-gradient(transparent 0, transparent 38px, rgba(180,160,120,0.08) 38px, rgba(180,160,120,0.08) 39px);
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 36px 28px 64px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ====== 頂端 ====== */
+  .topbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 30px;
+  }
+  .brand h1 {
+    font-family: 'Didot', 'Bodoni 72', 'Hoefler Text', serif;
+    font-size: 42px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    line-height: 1;
+  }
+  .brand .subtitle {
+    margin-top: 6px;
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 14px;
+    letter-spacing: 1px;
+  }
+  .user-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .user-name {
+    font-family: 'Didot', serif;
+    font-size: 22px;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+  .user-stats-mini {
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  .switch-user-btn {
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    padding: 6px 14px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-top: 4px;
+  }
+  .switch-user-btn:hover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  /* ====== 工具卡片 ====== */
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 40px;
+  }
+  .tool-card {
+    border: 1.5px solid var(--ink);
+    background: var(--paper-card);
+    padding: 26px 22px;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--ink);
+    transition: all 0.18s ease;
+    display: flex;
+    flex-direction: column;
+    min-height: 220px;
+    position: relative;
+    overflow: hidden;
+  }
+  .tool-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 0 var(--ink);
+  }
+  .tool-card .tool-icon {
+    font-size: 38px;
+    margin-bottom: 12px;
+    line-height: 1;
+  }
+  .tool-card .tool-name {
+    font-family: 'Didot', serif;
+    font-size: 24px;
+    font-weight: 400;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+  .tool-card .tool-name-en {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-bottom: 18px;
+  }
+  .tool-card .tool-recent {
+    margin-top: auto;
+    font-size: 13px;
+    color: var(--ink-soft);
+    border-top: 1px dashed var(--rule);
+    padding-top: 12px;
+  }
+  .tool-card .tool-recent strong {
+    font-family: 'Didot', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--ink);
+    letter-spacing: 1px;
+  }
+  .tool-card .tool-recent .recent-meta {
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 2px;
+  }
+  /* 各工具的 accent 色彩條 */
+  .tool-card.spelling::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--accent);
+  }
+  .tool-card.vocab::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--blue);
+  }
+  .tool-card.chinese::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--purple);
+  }
+
+  /* ====== 統計區段 ====== */
+  .section {
+    margin-bottom: 40px;
+  }
+  .section h2 {
+    font-family: 'Didot', serif;
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .section h2 .range-tabs {
+    display: flex;
+    gap: 4px;
+  }
+  .section h2 .range-tabs button {
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink-soft);
+    padding: 4px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .section h2 .range-tabs button.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  /* 統計卡片 */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 18px;
+  }
+  .stat-card {
+    border: 1px solid var(--rule);
+    background: var(--paper-card);
+    padding: 20px 22px;
+  }
+  .stat-card .stat-title {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+
+  /* 練習熱度長條圖 */
+  .heatmap {
+    display: flex;
+    align-items: flex-end;
+    height: 80px;
+    gap: 2px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--rule-light);
+  }
+  .heatmap .bar {
+    flex: 1;
+    min-width: 0;
+    background: var(--rule-light);
+    border-radius: 1px 1px 0 0;
+    position: relative;
+    transition: background 0.15s;
+  }
+  .heatmap .bar.has-data {
+    background: var(--accent);
+  }
+  .heatmap .bar:hover {
+    background: var(--ink);
+  }
+  .heatmap .bar:hover .bar-tip {
+    display: block;
+  }
+  .heatmap .bar-tip {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 2px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    z-index: 10;
+    font-family: 'Iowan Old Style', serif;
+  }
+  .heatmap-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  /* 平均正確率 bar */
+  .accuracy-list { display: flex; flex-direction: column; gap: 12px; }
+  .accuracy-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .accuracy-row .acc-label {
+    width: 60px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  .accuracy-row .acc-bar-wrap {
+    flex: 1;
+    height: 14px;
+    background: var(--rule-light);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .accuracy-row .acc-bar {
+    height: 100%;
+    background: var(--green);
+    transition: width 0.3s ease;
+  }
+  .accuracy-row.spelling .acc-bar { background: var(--accent); }
+  .accuracy-row.vocab .acc-bar    { background: var(--blue); }
+  .accuracy-row.chinese .acc-bar  { background: var(--purple); }
+  .accuracy-row .acc-pct {
+    width: 50px;
+    text-align: right;
+    font-family: 'Didot', serif;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .accuracy-row .acc-empty {
+    color: var(--gray);
+    font-style: italic;
+    font-size: 12px;
+  }
+
+  /* 最常錯 */
+  .top-wrong-list { font-size: 14px; }
+  .top-wrong-list li {
+    list-style: none;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--rule-light);
+  }
+  .top-wrong-list li:last-child { border-bottom: 0; }
+  .top-wrong-list .word {
+    font-family: 'Iowan Old Style', serif;
+    font-size: 16px;
+  }
+  .top-wrong-list .count {
+    color: var(--accent);
+    font-style: italic;
+    font-size: 13px;
+  }
+  .empty-hint {
+    color: var(--gray);
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+    font-size: 14px;
+  }
+
+  /* ====== 歷史紀錄 ====== */
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--paper-card);
+    border: 1px solid var(--rule);
+  }
+  .history-table th, .history-table td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--rule-light);
+    font-size: 14px;
+  }
+  .history-table th {
+    background: var(--paper-dark);
+    font-style: italic;
+    color: var(--ink-soft);
+    font-weight: 400;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .history-table tr:last-child td { border-bottom: 0; }
+  .history-table tr:hover td { background: rgba(255,255,255,0.4); }
+  .history-table .h-date {
+    font-family: 'Iowan Old Style', serif;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .history-table .h-tool {
+    font-family: 'Didot', serif;
+    letter-spacing: 1px;
+  }
+  .history-table .h-score {
+    font-family: 'Didot', serif;
+    font-size: 16px;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .history-table .h-pct {
+    text-align: right;
+    color: var(--ink-soft);
+    font-style: italic;
+    white-space: nowrap;
+  }
+  .history-table .h-pct.high { color: var(--green); }
+  .history-table .h-pct.low { color: var(--accent); }
+  .history-table .h-perfect {
+    color: var(--green);
+    font-weight: bold;
+  }
+
+  /* 標籤 */
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+  }
+  .tag.spelling { background: rgba(184, 68, 46, 0.12); color: var(--accent); }
+  .tag.vocab    { background: rgba(74, 111, 138, 0.12); color: var(--blue); }
+  .tag.chinese  { background: rgba(138, 90, 138, 0.12); color: var(--purple); }
+
+  .show-more-btn {
+    display: block;
+    margin: 20px auto 0;
+    background: transparent;
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    padding: 8px 24px;
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .show-more-btn:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  /* 第一次來：使用者選擇對話框 */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(42, 38, 32, 0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    padding: 36px 32px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+  }
+  .modal h2 {
+    font-family: 'Didot', serif;
+    font-size: 28px;
+    font-weight: 400;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .modal .modal-sub {
+    color: var(--ink-soft);
+    font-style: italic;
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  .modal .user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .modal .user-list button {
+    background: var(--paper-card);
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+    padding: 14px;
+    font-family: inherit;
+    font-size: 18px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.15s;
+  }
+  .modal .user-list button:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  /* 響應式 */
+  @media (max-width: 760px) {
+    .container { padding: 22px 16px 48px; }
+    .brand h1 { font-size: 32px; }
+    .topbar { flex-direction: column; align-items: flex-start; }
+    .user-panel { align-items: flex-start; }
+    .tools-grid { grid-template-columns: 1fr; }
+    .tool-card { min-height: auto; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .history-table { font-size: 12px; }
+    .history-table th, .history-table td { padding: 8px 10px; }
+    .history-table .h-tool .full { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 第一次來的選擇使用者 modal -->
+<div class="modal-overlay" id="user-modal">
+  <div class="modal">
+    <h2>歡迎</h2>
+    <p class="modal-sub">— 請選擇使用者 —</p>
+    <div class="user-list" id="user-list-buttons"></div>
+  </div>
+</div>
+
+<div class="container" id="main-container" style="display:none">
+
+  <!-- 頂部 -->
+  <div class="topbar">
+    <div class="brand">
+      <h1>學習中心</h1>
+      <div class="subtitle">— Study Hub —</div>
+    </div>
+    <div class="user-panel">
+      <div class="user-name" id="topbar-user-name">—</div>
+      <div class="user-stats-mini" id="topbar-user-stats">尚無紀錄</div>
+      <button class="switch-user-btn" id="switch-user-btn">切換使用者</button>
+    </div>
+  </div>
+
+  <!-- 三個工具卡片 -->
+  <div class="tools-grid" id="tools-grid"></div>
+
+  <!-- 統計區 -->
+  <div class="section">
+    <h2>
+      <span>學習統計</span>
+      <span class="range-tabs">
+        <button data-range="7">近 7 天</button>
+        <button data-range="30" class="active">近 30 天</button>
+        <button data-range="all">全部</button>
+      </span>
+    </h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-title">每日練習次數</div>
+        <div class="heatmap" id="heatmap"></div>
+        <div class="heatmap-axis" id="heatmap-axis"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">各工具平均正確率</div>
+        <div class="accuracy-list" id="accuracy-list"></div>
+      </div>
+    </div>
+    <div class="stat-card" style="margin-top:18px">
+      <div class="stat-title">最常錯的題目</div>
+      <ul class="top-wrong-list" id="top-wrong-list"></ul>
+    </div>
+  </div>
+
+  <!-- 歷史紀錄 -->
+  <div class="section">
+    <h2><span>歷史紀錄</span></h2>
+    <table class="history-table" id="history-table">
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>工具</th>
+          <th>章節</th>
+          <th style="text-align:right">分數</th>
+          <th style="text-align:right">正確率</th>
+        </tr>
+      </thead>
+      <tbody id="history-tbody"></tbody>
+    </table>
+    <button class="show-more-btn" id="show-more-btn" style="display:none">顯示全部</button>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+/* =====================================================
+   ⚙️ 設定區：在這裡修改誰可以使用這個學習中心
+   ===================================================== */
+const USERS = ['小明', '小華'];
+
+/* =====================================================
+   工具設定
+   ===================================================== */
+const TOOLS = {
+  spelling: {
+    name: '中翻英拼字',
+    nameEn: 'Spelling Quiz',
+    icon: '✏️',
+    url: 'index.html',
+    cls: 'spelling'
+  },
+  vocab: {
+    name: '單字測驗',
+    nameEn: 'Vocabulary Quiz',
+    icon: '📖',
+    url: 'EnglishDefinition.html',
+    cls: 'vocab'
+  },
+  chinese: {
+    name: '中文發音',
+    nameEn: '中文發音測驗',
+    icon: '🗣️',
+    url: 'chinese.html',
+    cls: 'chinese'
+  }
+};
+
+/* =====================================================
+   localStorage 介面
+   ===================================================== */
+const LS_CURRENT_USER = 'studyhub.currentUser';
+function lsHistoryKey(user) { return 'studyhub.history.' + user; }
+
+function getCurrentUser() {
+  return localStorage.getItem(LS_CURRENT_USER) || '';
+}
+function setCurrentUser(name) {
+  localStorage.setItem(LS_CURRENT_USER, name);
+}
+function loadHistory(user) {
+  try {
+    return JSON.parse(localStorage.getItem(lsHistoryKey(user)) || '[]');
+  } catch (e) {
+    return [];
+  }
+}
+
+/* =====================================================
+   啟動：選擇使用者
+   ===================================================== */
+function showUserModal() {
+  const wrap = document.getElementById('user-list-buttons');
+  wrap.innerHTML = '';
+  USERS.forEach(name => {
+    const btn = document.createElement('button');
+    btn.textContent = name;
+    btn.addEventListener('click', () => {
+      setCurrentUser(name);
+      document.getElementById('user-modal').classList.remove('show');
+      renderAll();
+    });
+    wrap.appendChild(btn);
+  });
+  document.getElementById('user-modal').classList.add('show');
+}
+
+document.getElementById('switch-user-btn').addEventListener('click', showUserModal);
+
+/* =====================================================
+   主渲染
+   ===================================================== */
+let currentRange = 30;  // 7 / 30 / 'all'
+let showAllHistory = false;
+const HISTORY_PREVIEW = 10;
+
+function renderAll() {
+  const user = getCurrentUser();
+  if (!user || !USERS.includes(user)) {
+    document.getElementById('main-container').style.display = 'none';
+    showUserModal();
+    return;
+  }
+  document.getElementById('main-container').style.display = '';
+  document.getElementById('topbar-user-name').textContent = user;
+
+  const history = loadHistory(user);
+
+  renderTopbarStats(history);
+  renderToolCards(user, history);
+  renderHeatmap(history);
+  renderAccuracy(history);
+  renderTopWrong(history);
+  renderHistoryTable(history);
+}
+
+function renderTopbarStats(history) {
+  const el = document.getElementById('topbar-user-stats');
+  if (history.length === 0) {
+    el.textContent = '尚無紀錄';
+    return;
+  }
+  // 連續打卡天數
+  const streak = computeStreak(history);
+  const total = history.length;
+  let txt = `共完成 ${total} 次練習`;
+  if (streak >= 2) txt += ` · 連續 ${streak} 天`;
+  el.textContent = txt;
+}
+
+function computeStreak(history) {
+  // 從今天往回數，每天至少有一筆紀錄就 +1
+  if (!history.length) return 0;
+  const dates = new Set(history.map(h => h.date.slice(0, 10)));
+  let streak = 0;
+  const d = new Date();
+  for (let i = 0; i < 365; i++) {
+    const key = d.toISOString().slice(0, 10);
+    if (dates.has(key)) {
+      streak++;
+    } else {
+      // 第一天就沒打卡：直接 0；不然斷了就停
+      if (i === 0) {
+        // 今天沒打卡，但昨天有的話 streak 算到昨天
+        d.setDate(d.getDate() - 1);
+        continue;
+      }
+      break;
+    }
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+function renderToolCards(user, history) {
+  const grid = document.getElementById('tools-grid');
+  grid.innerHTML = '';
+  Object.entries(TOOLS).forEach(([toolKey, tool]) => {
+    // 找這個工具最近的一筆
+    const recent = [...history].reverse().find(h => h.tool === toolKey);
+    const card = document.createElement('a');
+    card.className = 'tool-card ' + tool.cls;
+    // 把使用者名字透過 URL 帶過去
+    card.href = tool.url + '?user=' + encodeURIComponent(user);
+
+    let recentHtml = '<span style="color:var(--gray); font-style:italic">尚未練習過</span>';
+    if (recent) {
+      const pct = recent.total > 0 ? Math.round(recent.correct / recent.total * 100) : 0;
+      const pctCls = pct >= 90 ? 'high' : (pct < 70 ? 'low' : '');
+      const dateStr = formatDate(recent.date);
+      const perfect = recent.wrong === 0 ? ' ✨' : '';
+      recentHtml = `
+        <strong>${recent.correct} / ${recent.total}</strong>
+        <span style="color: var(--ink-soft); margin-left:6px; font-size:13px">${pct}%${perfect}</span>
+        <div class="recent-meta">${dateStr} · ${escapeHtml(recent.chapter)}</div>
+      `;
+    }
+
+    card.innerHTML = `
+      <div class="tool-icon">${tool.icon}</div>
+      <div class="tool-name">${tool.name}</div>
+      <div class="tool-name-en">${tool.nameEn}</div>
+      <div class="tool-recent">${recentHtml}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+/* ----- 練習熱度長條圖 ----- */
+function renderHeatmap(history) {
+  const heatmap = document.getElementById('heatmap');
+  const axis = document.getElementById('heatmap-axis');
+  heatmap.innerHTML = '';
+  axis.innerHTML = '';
+
+  // 決定起訖日
+  let days, startDate;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (currentRange === 'all') {
+    if (history.length === 0) {
+      heatmap.innerHTML = '<div class="empty-hint" style="width:100%">尚無紀錄</div>';
+      return;
+    }
+    const earliestStr = history.reduce((min, h) => h.date < min ? h.date : min, history[0].date);
+    startDate = new Date(earliestStr.slice(0, 10));
+    days = Math.max(1, Math.round((today - startDate) / 86400000) + 1);
+    if (days > 90) days = 90;  // 太多會擠
+    startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - days + 1);
+  } else {
+    days = currentRange;
+    startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - days + 1);
+  }
+
+  // 統計每日次數
+  const dayCount = {};
+  history.forEach(h => {
+    const k = h.date.slice(0, 10);
+    dayCount[k] = (dayCount[k] || 0) + 1;
+  });
+
+  // 找最大值決定 bar 高度
+  let maxCount = 1;
+  for (let i = 0; i < days; i++) {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    const c = dayCount[d.toISOString().slice(0, 10)] || 0;
+    if (c > maxCount) maxCount = c;
+  }
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    const k = d.toISOString().slice(0, 10);
+    const c = dayCount[k] || 0;
+    const bar = document.createElement('div');
+    bar.className = 'bar' + (c > 0 ? ' has-data' : '');
+    const heightPct = c > 0 ? Math.max(8, (c / maxCount) * 100) : 4;
+    bar.style.height = heightPct + '%';
+    const tip = document.createElement('div');
+    tip.className = 'bar-tip';
+    tip.textContent = `${k.slice(5).replace('-', '/')} · ${c} 次`;
+    bar.appendChild(tip);
+    heatmap.appendChild(bar);
+  }
+
+  // 軸標：起、中、迄
+  const fmt = d => `${d.getMonth() + 1}/${d.getDate()}`;
+  const mid = new Date(startDate);
+  mid.setDate(startDate.getDate() + Math.floor(days / 2));
+  axis.innerHTML = `<span>${fmt(startDate)}</span><span>${fmt(mid)}</span><span>${fmt(today)}</span>`;
+}
+
+/* ----- 各工具平均正確率 ----- */
+function renderAccuracy(history) {
+  const wrap = document.getElementById('accuracy-list');
+  wrap.innerHTML = '';
+  // 過濾範圍
+  const filtered = filterByRange(history);
+  Object.entries(TOOLS).forEach(([toolKey, tool]) => {
+    const recs = filtered.filter(h => h.tool === toolKey);
+    let bar;
+    if (recs.length === 0) {
+      bar = `
+        <div class="accuracy-row ${tool.cls}">
+          <div class="acc-label">${tool.name.slice(0, 4)}</div>
+          <div class="acc-bar-wrap"><div class="acc-bar" style="width:0%"></div></div>
+          <div class="acc-empty">無紀錄</div>
+        </div>`;
+    } else {
+      const correct = recs.reduce((s, h) => s + h.correct, 0);
+      const total = recs.reduce((s, h) => s + h.total, 0);
+      const pct = total > 0 ? Math.round(correct / total * 100) : 0;
+      bar = `
+        <div class="accuracy-row ${tool.cls}">
+          <div class="acc-label">${tool.name.slice(0, 4)}</div>
+          <div class="acc-bar-wrap"><div class="acc-bar" style="width:${pct}%"></div></div>
+          <div class="acc-pct">${pct}%</div>
+        </div>`;
+    }
+    wrap.insertAdjacentHTML('beforeend', bar);
+  });
+}
+
+/* ----- 最常錯的題目 ----- */
+function renderTopWrong(history) {
+  const ul = document.getElementById('top-wrong-list');
+  ul.innerHTML = '';
+  const filtered = filterByRange(history);
+  // 聚合
+  const counter = {};  // key: tool|word, value: { tool, word, count }
+  filtered.forEach(h => {
+    if (!Array.isArray(h.wrongList)) return;
+    h.wrongList.forEach(w => {
+      const word = (typeof w === 'string') ? w : (w.word || w.target || w.question || '');
+      if (!word) return;
+      const k = h.tool + '|' + word;
+      if (!counter[k]) counter[k] = { tool: h.tool, word, count: 0 };
+      counter[k].count++;
+    });
+  });
+  const list = Object.values(counter)
+    .filter(x => x.count >= 2)  // 只列錯 2 次以上
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
+  if (list.length === 0) {
+    ul.innerHTML = '<li class="empty-hint" style="border-bottom:0">這段時間沒有重複錯誤的題目 ✨</li>';
+    return;
+  }
+  list.forEach(({ tool, word, count }) => {
+    const li = document.createElement('li');
+    const cls = TOOLS[tool] ? TOOLS[tool].cls : '';
+    li.innerHTML = `
+      <span class="word"><span class="tag ${cls}">${TOOLS[tool] ? TOOLS[tool].name.slice(0, 2) : tool}</span> ${escapeHtml(word)}</span>
+      <span class="count">錯 ${count} 次</span>
+    `;
+    ul.appendChild(li);
+  });
+}
+
+/* ----- 歷史紀錄表 ----- */
+function renderHistoryTable(history) {
+  const tbody = document.getElementById('history-tbody');
+  tbody.innerHTML = '';
+  if (history.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-hint" style="text-align:center; padding:32px">— 尚未有紀錄 —</td></tr>`;
+    document.getElementById('show-more-btn').style.display = 'none';
+    return;
+  }
+
+  const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
+  const display = showAllHistory ? sorted : sorted.slice(0, HISTORY_PREVIEW);
+
+  display.forEach(h => {
+    const tool = TOOLS[h.tool] || { name: h.tool, cls: '' };
+    const pct = h.total > 0 ? Math.round(h.correct / h.total * 100) : 0;
+    const pctCls = pct >= 90 ? 'high' : (pct < 70 ? 'low' : '');
+    const perfect = h.wrong === 0 ? ' <span class="h-perfect">✨</span>' : '';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="h-date">${formatDateTime(h.date)}</td>
+      <td class="h-tool"><span class="tag ${tool.cls}">${tool.name}</span></td>
+      <td>${escapeHtml(h.chapter)}</td>
+      <td class="h-score">${h.correct} / ${h.total}${perfect}</td>
+      <td class="h-pct ${pctCls}">${pct}%</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const moreBtn = document.getElementById('show-more-btn');
+  if (sorted.length > HISTORY_PREVIEW) {
+    moreBtn.style.display = '';
+    moreBtn.textContent = showAllHistory ? '收起' : `顯示全部 (${sorted.length})`;
+  } else {
+    moreBtn.style.display = 'none';
+  }
+}
+
+document.getElementById('show-more-btn').addEventListener('click', () => {
+  showAllHistory = !showAllHistory;
+  renderAll();
+});
+
+/* ----- 範圍切換 ----- */
+document.querySelectorAll('.range-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const r = btn.getAttribute('data-range');
+    currentRange = (r === 'all') ? 'all' : parseInt(r, 10);
+    document.querySelectorAll('.range-tabs button').forEach(b => b.classList.toggle('active', b === btn));
+    renderAll();
+  });
+});
+
+function filterByRange(history) {
+  if (currentRange === 'all') return history;
+  const cutoff = new Date();
+  cutoff.setHours(0, 0, 0, 0);
+  cutoff.setDate(cutoff.getDate() - currentRange + 1);
+  return history.filter(h => new Date(h.date) >= cutoff);
+}
+
+/* ----- 工具函式 ----- */
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatDate(iso) {
+  // YYYY-MM-DD → M/D
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function formatDateTime(iso) {
+  const d = new Date(iso);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const dStart = new Date(d);
+  dStart.setHours(0, 0, 0, 0);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  if (dStart.getTime() === today.getTime()) {
+    return `今天 ${hh}:${mm}`;
+  } else if (dStart.getTime() === yesterday.getTime()) {
+    return `昨天 ${hh}:${mm}`;
+  } else {
+    return `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm}`;
+  }
+}
+
+/* =====================================================
+   啟動
+   ===================================================== */
+renderAll();
+</script>
+</body>
+</html>
