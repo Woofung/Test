@@ -4,27 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>學習中心</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root {
     --paper: #f4ede0;
     --paper-dark: #e8dcc4;
     --paper-card: #faf5e8;
+    --paper-card-2: #fbf8ed;
     --ink: #2a2620;
     --ink-soft: #5a5048;
     --rule: #c9bfa8;
     --rule-light: #ddd0b0;
     --accent: #b8442e;
     --green: #4a7c3a;
-    --green-bg: #7fb069;
+    --green-light: #7fb069;
+    --green-bg: #cfe3bd;
     --red: #c9392c;
     --yellow: #c8a84a;
     --blue: #4a6f8a;
     --purple: #8a5a8a;
     --gray: #9a9080;
   }
-
-  /* ===== 修改這裡來設定使用者列表 ===== */
-  /* 寫在 CSS 裡面只是註解，下方 JS 區段才是真正的列表 */
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -42,19 +42,98 @@
     inset: 0;
     pointer-events: none;
     background-image:
-      repeating-linear-gradient(transparent 0, transparent 38px, rgba(180,160,120,0.08) 38px, rgba(180,160,120,0.08) 39px);
+      repeating-linear-gradient(transparent 0, transparent 38px, rgba(180,160,120,0.06) 38px, rgba(180,160,120,0.06) 39px);
     z-index: 0;
   }
 
   .container {
-    max-width: 1100px;
+    max-width: 980px;
     margin: 0 auto;
-    padding: 36px 28px 64px;
+    padding: 28px 22px 64px;
     position: relative;
     z-index: 1;
   }
 
-  /* ====== 頂端 ====== */
+  /* ====== Profile 選擇畫面 ====== */
+  #profile-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  #profile-screen.hidden { display: none; }
+  .profile-box {
+    text-align: center;
+    max-width: 440px;
+    width: 100%;
+  }
+  .profile-box h1 {
+    font-family: 'Didot', 'Bodoni 72', 'Hoefler Text', serif;
+    font-size: 56px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .profile-box .subtitle {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 16px;
+    letter-spacing: 2px;
+    margin-bottom: 50px;
+  }
+  .profile-box .prompt {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 14px;
+    letter-spacing: 3px;
+    margin-bottom: 22px;
+    text-transform: uppercase;
+  }
+  .profile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .profile-list button {
+    background: var(--paper-card);
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+    padding: 22px 24px;
+    font-family: 'Didot', serif;
+    font-size: 22px;
+    cursor: pointer;
+    letter-spacing: 3px;
+    transition: all 0.15s;
+  }
+  .profile-list button:hover {
+    background: var(--ink);
+    color: var(--paper);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 0 var(--accent);
+  }
+  .profile-box .gear-link {
+    color: var(--ink-soft);
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    text-decoration: none;
+    background: transparent;
+    border: 0;
+    font-family: inherit;
+    font-style: italic;
+    padding: 8px;
+  }
+  .profile-box .gear-link:hover { color: var(--accent); text-decoration: underline; }
+
+  /* ====== 主畫面 ====== */
+  #main-screen.hidden { display: none; }
+
+  /* 頂部 */
   .topbar {
     display: flex;
     align-items: flex-end;
@@ -62,28 +141,28 @@
     gap: 16px;
     flex-wrap: wrap;
     border-bottom: 2px solid var(--ink);
-    padding-bottom: 18px;
-    margin-bottom: 30px;
+    padding-bottom: 16px;
+    margin-bottom: 28px;
   }
   .brand h1 {
-    font-family: 'Didot', 'Bodoni 72', 'Hoefler Text', serif;
-    font-size: 42px;
+    font-family: 'Didot', 'Bodoni 72', serif;
+    font-size: 36px;
     font-weight: 400;
     letter-spacing: -0.5px;
     line-height: 1;
   }
   .brand .subtitle {
-    margin-top: 6px;
+    margin-top: 4px;
     font-style: italic;
     color: var(--ink-soft);
-    font-size: 14px;
+    font-size: 13px;
     letter-spacing: 1px;
   }
   .user-panel {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
-    gap: 6px;
+    gap: 4px;
   }
   .user-name {
     font-family: 'Didot', serif;
@@ -96,289 +175,349 @@
     color: var(--ink-soft);
     font-style: italic;
   }
-  .switch-user-btn {
+  .topbar-buttons {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .topbar-buttons button {
     background: transparent;
     color: var(--ink-soft);
     border: 1px solid var(--rule);
-    padding: 6px 14px;
+    padding: 5px 12px;
     border-radius: 2px;
     cursor: pointer;
     font-family: inherit;
-    font-size: 13px;
+    font-size: 12px;
     letter-spacing: 1px;
-    margin-top: 4px;
   }
-  .switch-user-btn:hover {
+  .topbar-buttons button:hover {
     background: var(--ink);
     color: var(--paper);
     border-color: var(--ink);
   }
+  .sync-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: var(--paper-card);
+    border: 1px solid var(--rule);
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 1px;
+    margin-top: 6px;
+    align-self: flex-end;
+  }
+  .sync-pill.on { color: var(--green); border-color: var(--green-light); }
+  .sync-pill.error { color: var(--accent); border-color: var(--accent); }
+  .sync-pill .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: currentColor;
+  }
 
-  /* ====== 工具卡片 ====== */
-  .tools-grid {
+  /* ====== 工具卡片：頂部一排（Quick Access） ====== */
+  .tools-quick {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 18px;
-    margin-bottom: 40px;
+    gap: 14px;
+    margin-bottom: 36px;
   }
-  .tool-card {
+  .tool-quick-card {
     border: 1.5px solid var(--ink);
     background: var(--paper-card);
-    padding: 26px 22px;
+    padding: 20px 18px;
     cursor: pointer;
     text-decoration: none;
     color: var(--ink);
     transition: all 0.18s ease;
     display: flex;
     flex-direction: column;
-    min-height: 220px;
+    gap: 4px;
     position: relative;
     overflow: hidden;
   }
-  .tool-card:hover {
+  .tool-quick-card:hover {
     transform: translateY(-3px);
     box-shadow: 0 6px 0 var(--ink);
   }
-  .tool-card .tool-icon {
-    font-size: 38px;
-    margin-bottom: 12px;
+  .tool-quick-card .tic {
+    font-size: 26px;
     line-height: 1;
-  }
-  .tool-card .tool-name {
-    font-family: 'Didot', serif;
-    font-size: 24px;
-    font-weight: 400;
     margin-bottom: 4px;
-    letter-spacing: 0.5px;
   }
-  .tool-card .tool-name-en {
+  .tool-quick-card .tname {
+    font-family: 'Didot', serif;
+    font-size: 19px;
+    letter-spacing: 1px;
+  }
+  .tool-quick-card .tdesc {
     font-style: italic;
     color: var(--ink-soft);
-    font-size: 13px;
-    letter-spacing: 1px;
-    margin-bottom: 18px;
-  }
-  .tool-card .tool-recent {
-    margin-top: auto;
-    font-size: 13px;
-    color: var(--ink-soft);
-    border-top: 1px dashed var(--rule);
-    padding-top: 12px;
-  }
-  .tool-card .tool-recent strong {
-    font-family: 'Didot', serif;
-    font-size: 22px;
-    font-weight: 400;
-    color: var(--ink);
-    letter-spacing: 1px;
-  }
-  .tool-card .tool-recent .recent-meta {
     font-size: 12px;
-    color: var(--gray);
-    margin-top: 2px;
+    letter-spacing: 1px;
   }
-  /* 各工具的 accent 色彩條 */
-  .tool-card.spelling::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: var(--accent);
+  .tool-quick-card .tprog {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 8px;
+    border-top: 1px dashed var(--rule);
+    padding-top: 6px;
   }
-  .tool-card.vocab::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: var(--blue);
-  }
-  .tool-card.chinese::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 4px;
-    background: var(--purple);
-  }
+  .tool-quick-card.spelling::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--accent); }
+  .tool-quick-card.vocab::before    { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--blue); }
+  .tool-quick-card.chinese::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--purple); }
 
-  /* ====== 統計區段 ====== */
-  .section {
+  /* ====== 工具進度區（每個工具一個區塊：章節格子 + 最常錯） ====== */
+  .tool-section {
     margin-bottom: 40px;
+    border: 1px solid var(--rule);
+    background: var(--paper-card-2);
+    padding: 24px 24px 28px;
   }
-  .section h2 {
+  .tool-section .ts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--rule);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .tool-section .ts-title {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .tool-section .ts-title h2 {
     font-family: 'Didot', serif;
     font-size: 22px;
     font-weight: 400;
     letter-spacing: 2px;
-    margin-bottom: 18px;
-    border-bottom: 1px solid var(--rule);
-    padding-bottom: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
   }
-  .section h2 .range-tabs {
-    display: flex;
-    gap: 4px;
-  }
-  .section h2 .range-tabs button {
-    background: transparent;
-    border: 1px solid var(--rule);
-    color: var(--ink-soft);
-    padding: 4px 10px;
-    font-family: inherit;
-    font-size: 12px;
-    letter-spacing: 1px;
-    cursor: pointer;
-    border-radius: 2px;
-  }
-  .section h2 .range-tabs button.active {
-    background: var(--ink);
-    color: var(--paper);
-    border-color: var(--ink);
-  }
-
-  /* 統計卡片 */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    gap: 18px;
-  }
-  .stat-card {
-    border: 1px solid var(--rule);
-    background: var(--paper-card);
-    padding: 20px 22px;
-  }
-  .stat-card .stat-title {
+  .tool-section.spelling .ts-title h2 { color: var(--accent); }
+  .tool-section.vocab    .ts-title h2 { color: var(--blue); }
+  .tool-section.chinese  .ts-title h2 { color: var(--purple); }
+  .tool-section .ts-title .ts-en {
     font-style: italic;
     color: var(--ink-soft);
-    font-size: 13px;
+    font-size: 14px;
     letter-spacing: 1px;
-    margin-bottom: 14px;
+  }
+  .tool-section .ts-progress {
+    font-style: italic;
+    font-size: 13px;
+    color: var(--ink-soft);
+    letter-spacing: 1px;
+  }
+  .tool-section .ts-progress .done {
+    font-family: 'Didot', serif;
+    font-style: normal;
+    font-size: 18px;
+    color: var(--ink);
+    margin: 0 4px;
   }
 
-  /* 練習熱度長條圖 */
-  .heatmap {
-    display: flex;
-    align-items: flex-end;
-    height: 80px;
-    gap: 2px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid var(--rule-light);
+  .ts-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 28px;
   }
-  .heatmap .bar {
-    flex: 1;
+  /* 在窄一點的螢幕（iPad 直立 + 手機）改成單欄 */
+  @media (max-width: 760px) {
+    .ts-body {
+      grid-template-columns: 1fr;
+      gap: 22px;
+    }
+  }
+
+  /* === 章節格子 === */
+  .chapter-grid-wrap {
     min-width: 0;
-    background: var(--rule-light);
-    border-radius: 1px 1px 0 0;
+  }
+  .chapter-grid-wrap .grid-label {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+  .chapter-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .chapter-grid-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: nowrap;
+    min-height: 32px;
+  }
+  .chapter-grid-row .row-label {
+    width: 56px;
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--gray);
+    font-style: italic;
+    letter-spacing: 0.5px;
+    text-align: right;
+    padding-right: 4px;
+  }
+  .chapter-cell {
+    flex: 1 1 0;
+    min-width: 0;
+    aspect-ratio: 1;
+    max-width: 32px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--gray);
+    font-family: 'Didot', serif;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.12s;
     position: relative;
-    transition: background 0.15s;
+    user-select: none;
   }
-  .heatmap .bar.has-data {
-    background: var(--accent);
+  .chapter-cell:hover {
+    border-color: var(--ink);
+    color: var(--ink);
+    transform: scale(1.1);
+    z-index: 5;
   }
-  .heatmap .bar:hover {
-    background: var(--ink);
+  .chapter-cell.done {
+    background: var(--green-bg);
+    border-color: var(--green);
+    color: var(--green);
   }
-  .heatmap .bar:hover .bar-tip {
-    display: block;
+  .chapter-cell.done.multi {
+    background: var(--green-light);
+    color: white;
   }
-  .heatmap .bar-tip {
+  .chapter-cell.done.perfect::after {
+    content: '★';
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    font-size: 9px;
+    color: var(--yellow);
+    line-height: 1;
+  }
+  .chapter-cell .check {
+    font-size: 14px;
+    line-height: 1;
+  }
+  /* tooltip */
+  .chapter-cell .cell-tip {
     display: none;
     position: absolute;
-    bottom: 100%;
+    bottom: calc(100% + 6px);
     left: 50%;
     transform: translateX(-50%);
     background: var(--ink);
     color: var(--paper);
-    font-size: 11px;
-    padding: 4px 8px;
-    border-radius: 2px;
-    margin-bottom: 4px;
-    white-space: nowrap;
-    z-index: 10;
     font-family: 'Iowan Old Style', serif;
-  }
-  .heatmap-axis {
-    display: flex;
-    justify-content: space-between;
     font-size: 11px;
-    color: var(--ink-soft);
-    margin-top: 6px;
-    font-style: italic;
+    line-height: 1.5;
+    padding: 6px 10px;
+    border-radius: 3px;
+    white-space: nowrap;
+    z-index: 20;
+    letter-spacing: 0.5px;
+    pointer-events: none;
   }
-
-  /* 平均正確率 bar */
-  .accuracy-list { display: flex; flex-direction: column; gap: 12px; }
-  .accuracy-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  .chapter-cell .cell-tip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: var(--ink);
+  }
+  .chapter-cell:hover .cell-tip { display: block; }
+  /* 沒讀到 Excel：顯示一個提示 */
+  .chapter-empty-hint {
     font-size: 13px;
-  }
-  .accuracy-row .acc-label {
-    width: 60px;
-    color: var(--ink-soft);
-    font-style: italic;
-  }
-  .accuracy-row .acc-bar-wrap {
-    flex: 1;
-    height: 14px;
-    background: var(--rule-light);
-    border-radius: 2px;
-    overflow: hidden;
-    position: relative;
-  }
-  .accuracy-row .acc-bar {
-    height: 100%;
-    background: var(--green);
-    transition: width 0.3s ease;
-  }
-  .accuracy-row.spelling .acc-bar { background: var(--accent); }
-  .accuracy-row.vocab .acc-bar    { background: var(--blue); }
-  .accuracy-row.chinese .acc-bar  { background: var(--purple); }
-  .accuracy-row .acc-pct {
-    width: 50px;
-    text-align: right;
-    font-family: 'Didot', serif;
-    font-size: 14px;
-    color: var(--ink);
-  }
-  .accuracy-row .acc-empty {
     color: var(--gray);
     font-style: italic;
-    font-size: 12px;
+    padding: 14px 0;
   }
 
-  /* 最常錯 */
+  /* === 最常錯的題目 === */
+  .top-wrong-col {
+    border-left: 1px dashed var(--rule);
+    padding-left: 22px;
+  }
+  @media (max-width: 760px) {
+    .top-wrong-col {
+      border-left: 0;
+      border-top: 1px dashed var(--rule);
+      padding-left: 0;
+      padding-top: 18px;
+    }
+  }
+  .top-wrong-col .col-label {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
   .top-wrong-list { font-size: 14px; }
   .top-wrong-list li {
     list-style: none;
     display: flex;
     align-items: baseline;
     justify-content: space-between;
+    gap: 8px;
     padding: 6px 0;
     border-bottom: 1px dashed var(--rule-light);
   }
   .top-wrong-list li:last-child { border-bottom: 0; }
   .top-wrong-list .word {
     font-family: 'Iowan Old Style', serif;
-    font-size: 16px;
+    font-size: 15px;
+    word-break: break-word;
+    flex: 1;
+    min-width: 0;
   }
   .top-wrong-list .count {
     color: var(--accent);
     font-style: italic;
-    font-size: 13px;
+    font-size: 12px;
+    white-space: nowrap;
   }
-  .empty-hint {
+  .top-wrong-empty {
     color: var(--gray);
     font-style: italic;
-    text-align: center;
-    padding: 20px;
-    font-size: 14px;
+    font-size: 13px;
+    padding: 12px 0;
   }
 
   /* ====== 歷史紀錄 ====== */
+  .history-section {
+    margin-bottom: 40px;
+  }
+  .history-section h2 {
+    font-family: 'Didot', serif;
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 8px;
+  }
   .history-table {
     width: 100%;
     border-collapse: collapse;
@@ -403,7 +542,6 @@
   .history-table tr:last-child td { border-bottom: 0; }
   .history-table tr:hover td { background: rgba(255,255,255,0.4); }
   .history-table .h-date {
-    font-family: 'Iowan Old Style', serif;
     color: var(--ink-soft);
     white-space: nowrap;
   }
@@ -425,18 +563,15 @@
   }
   .history-table .h-pct.high { color: var(--green); }
   .history-table .h-pct.low { color: var(--accent); }
-  .history-table .h-perfect {
-    color: var(--green);
-    font-weight: bold;
-  }
+  .history-table .h-perfect { color: var(--yellow); }
 
-  /* 標籤 */
   .tag {
     display: inline-block;
     font-size: 11px;
     padding: 2px 8px;
     border-radius: 2px;
     letter-spacing: 1px;
+    white-space: nowrap;
   }
   .tag.spelling { background: rgba(184, 68, 46, 0.12); color: var(--accent); }
   .tag.vocab    { background: rgba(74, 111, 138, 0.12); color: var(--blue); }
@@ -455,12 +590,9 @@
     cursor: pointer;
     border-radius: 2px;
   }
-  .show-more-btn:hover {
-    background: var(--ink);
-    color: var(--paper);
-  }
+  .show-more-btn:hover { background: var(--ink); color: var(--paper); }
 
-  /* 第一次來：使用者選擇對話框 */
+  /* ====== Modal: 設定 Gist ====== */
   .modal-overlay {
     display: none;
     position: fixed;
@@ -475,14 +607,15 @@
   .modal {
     background: var(--paper);
     border: 2px solid var(--ink);
-    padding: 36px 32px;
-    max-width: 420px;
+    padding: 32px 28px;
+    max-width: 540px;
     width: 100%;
-    text-align: center;
+    max-height: 90vh;
+    overflow-y: auto;
   }
   .modal h2 {
     font-family: 'Didot', serif;
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 400;
     margin-bottom: 8px;
     letter-spacing: 1px;
@@ -490,223 +623,524 @@
   .modal .modal-sub {
     color: var(--ink-soft);
     font-style: italic;
-    font-size: 14px;
-    margin-bottom: 24px;
+    font-size: 13px;
+    margin-bottom: 22px;
+    line-height: 1.7;
   }
-  .modal .user-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 8px;
+  .modal .modal-sub a { color: var(--accent); }
+  .modal label {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    margin-top: 14px;
+    text-transform: uppercase;
+    font-style: italic;
   }
-  .modal .user-list button {
+  .modal input[type=text],
+  .modal input[type=password] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--rule);
     background: var(--paper-card);
-    border: 1.5px solid var(--ink);
-    color: var(--ink);
-    padding: 14px;
-    font-family: inherit;
-    font-size: 18px;
-    cursor: pointer;
-    letter-spacing: 2px;
-    transition: all 0.15s;
+    font-family: 'Iowan Old Style', monospace;
+    font-size: 14px;
+    border-radius: 2px;
   }
-  .modal .user-list button:hover {
+  .modal input:focus {
+    border-color: var(--ink);
+    outline: none;
+  }
+  .modal .modal-help {
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-style: italic;
+    margin-top: 4px;
+    line-height: 1.5;
+  }
+  .modal .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .modal .modal-actions button {
+    flex: 1;
+    padding: 12px;
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 2px;
+    border: 1px solid var(--ink);
+  }
+  .modal .btn-primary {
     background: var(--ink);
     color: var(--paper);
   }
+  .modal .btn-primary:hover { background: var(--accent); border-color: var(--accent); }
+  .modal .btn-secondary {
+    background: transparent;
+    color: var(--ink);
+  }
+  .modal .btn-secondary:hover { background: var(--paper-card); }
+  .modal .btn-danger {
+    background: transparent;
+    color: var(--accent);
+    border-color: var(--accent);
+    flex: 0 0 auto;
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+  .modal .test-result {
+    margin-top: 12px;
+    padding: 8px 12px;
+    background: var(--paper-card);
+    border: 1px solid var(--rule);
+    font-size: 13px;
+    line-height: 1.6;
+    display: none;
+    border-radius: 2px;
+  }
+  .modal .test-result.show { display: block; }
+  .modal .test-result.ok { border-color: var(--green-light); color: var(--green); }
+  .modal .test-result.fail { border-color: var(--accent); color: var(--accent); }
 
-  /* 響應式 */
+  /* ====== 響應式 ====== */
   @media (max-width: 760px) {
-    .container { padding: 22px 16px 48px; }
-    .brand h1 { font-size: 32px; }
+    .container { padding: 22px 14px 48px; }
+    .brand h1 { font-size: 28px; }
     .topbar { flex-direction: column; align-items: flex-start; }
     .user-panel { align-items: flex-start; }
-    .tools-grid { grid-template-columns: 1fr; }
-    .tool-card { min-height: auto; }
-    .stats-grid { grid-template-columns: 1fr; }
+    .tools-quick { grid-template-columns: 1fr; }
     .history-table { font-size: 12px; }
     .history-table th, .history-table td { padding: 8px 10px; }
-    .history-table .h-tool .full { display: none; }
+    .tool-section { padding: 18px 16px 22px; }
+    .tool-section .ts-title h2 { font-size: 18px; }
+    .chapter-grid-row .row-label { width: 44px; font-size: 10px; }
+    .chapter-cell { max-width: 28px; font-size: 10px; }
+  }
+  @media (max-width: 420px) {
+    .chapter-cell { max-width: 24px; font-size: 9px; }
+    .chapter-grid-row { gap: 3px; }
   }
 </style>
 </head>
 <body>
 
-<!-- 第一次來的選擇使用者 modal -->
-<div class="modal-overlay" id="user-modal">
-  <div class="modal">
-    <h2>歡迎</h2>
-    <p class="modal-sub">— 請選擇使用者 —</p>
-    <div class="user-list" id="user-list-buttons"></div>
+<!-- ============ Profile 選擇畫面（首頁進來會看到的） ============ -->
+<div id="profile-screen">
+  <div class="profile-box">
+    <h1>學習中心</h1>
+    <div class="subtitle">— Study Hub —</div>
+    <div class="prompt">— 選擇 Profile —</div>
+    <div class="profile-list" id="profile-list"></div>
+    <button type="button" class="gear-link" id="open-settings-from-profile">⚙ 跨裝置同步設定</button>
   </div>
 </div>
 
-<div class="container" id="main-container" style="display:none">
+<!-- ============ 主畫面（選了 Profile 後顯示） ============ -->
+<div id="main-screen" class="hidden">
+  <div class="container">
 
-  <!-- 頂部 -->
-  <div class="topbar">
-    <div class="brand">
-      <h1>學習中心</h1>
-      <div class="subtitle">— Study Hub —</div>
-    </div>
-    <div class="user-panel">
-      <div class="user-name" id="topbar-user-name">—</div>
-      <div class="user-stats-mini" id="topbar-user-stats">尚無紀錄</div>
-      <button class="switch-user-btn" id="switch-user-btn">切換使用者</button>
-    </div>
-  </div>
-
-  <!-- 三個工具卡片 -->
-  <div class="tools-grid" id="tools-grid"></div>
-
-  <!-- 統計區 -->
-  <div class="section">
-    <h2>
-      <span>學習統計</span>
-      <span class="range-tabs">
-        <button data-range="7">近 7 天</button>
-        <button data-range="30" class="active">近 30 天</button>
-        <button data-range="all">全部</button>
-      </span>
-    </h2>
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-title">每日練習次數</div>
-        <div class="heatmap" id="heatmap"></div>
-        <div class="heatmap-axis" id="heatmap-axis"></div>
+    <!-- 頂部 -->
+    <div class="topbar">
+      <div class="brand">
+        <h1>學習中心</h1>
+        <div class="subtitle">— Study Hub —</div>
       </div>
-      <div class="stat-card">
-        <div class="stat-title">各工具平均正確率</div>
-        <div class="accuracy-list" id="accuracy-list"></div>
+      <div class="user-panel">
+        <div class="user-name" id="topbar-user-name">—</div>
+        <div class="user-stats-mini" id="topbar-user-stats">尚無紀錄</div>
+        <div class="topbar-buttons">
+          <button id="settings-btn">同步設定</button>
+          <button id="switch-user-btn">切換 Profile</button>
+        </div>
+        <div class="sync-pill" id="sync-pill" style="display:none">
+          <span class="dot"></span>
+          <span class="sync-text">未啟用同步</span>
+        </div>
       </div>
     </div>
-    <div class="stat-card" style="margin-top:18px">
-      <div class="stat-title">最常錯的題目</div>
-      <ul class="top-wrong-list" id="top-wrong-list"></ul>
+
+    <!-- 三個工具快速進入 -->
+    <div class="tools-quick" id="tools-quick"></div>
+
+    <!-- 工具進度區（章節格子 + 最常錯） -->
+    <div id="tool-sections"></div>
+
+    <!-- 歷史紀錄 -->
+    <div class="history-section">
+      <h2>歷史紀錄</h2>
+      <table class="history-table" id="history-table">
+        <thead>
+          <tr>
+            <th>日期</th>
+            <th>工具</th>
+            <th>章節</th>
+            <th style="text-align:right">分數</th>
+            <th style="text-align:right">正確率</th>
+          </tr>
+        </thead>
+        <tbody id="history-tbody"></tbody>
+      </table>
+      <button class="show-more-btn" id="show-more-btn" style="display:none">顯示全部</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ Modal: 同步設定 ============ -->
+<div class="modal-overlay" id="settings-modal">
+  <div class="modal">
+    <h2>跨裝置同步設定</h2>
+    <p class="modal-sub">
+      使用 GitHub Gist 在不同裝置之間同步紀錄。設定一次以後，每次完成測驗會自動上傳；其他裝置打開首頁時會自動下載最新紀錄。
+      不設定也可以使用，紀錄就只會存在這台裝置。
+      <br><br>
+      <strong>第一次設定步驟：</strong>
+      <br>
+      ① 到 <a href="https://github.com/settings/tokens?type=beta" target="_blank">GitHub Token 頁面</a> 產生一個 Token（只勾「Gists」權限）
+      <br>
+      ② 到 <a href="https://gist.github.com/" target="_blank">gist.github.com</a> 建立一個新的 Gist（內容隨便填、設成 Secret），複製網址裡的 Gist ID
+      <br>
+      ③ 把 Token 跟 Gist ID 貼到下面
+    </p>
+
+    <label for="gist-id-input">GIST ID</label>
+    <input type="text" id="gist-id-input" placeholder="例如：abc123def456...（網址最後一段）" autocomplete="off">
+    <div class="modal-help">在 gist.github.com/你的帳號/<u>這段</u> 取得</div>
+
+    <label for="gist-token-input">GITHUB TOKEN</label>
+    <input type="password" id="gist-token-input" placeholder="github_pat_... 或 ghp_..." autocomplete="off">
+    <div class="modal-help">這個值只會存在你的瀏覽器 localStorage，不會送到別處</div>
+
+    <div class="test-result" id="settings-test-result"></div>
+
+    <div class="modal-actions">
+      <button class="btn-secondary" id="settings-cancel-btn">取消</button>
+      <button class="btn-secondary" id="settings-test-btn">測試連線</button>
+      <button class="btn-primary" id="settings-save-btn">儲存並啟用</button>
+    </div>
+    <div style="margin-top: 12px; text-align: right;">
+      <button class="btn-danger" id="settings-disable-btn" style="display:none">關閉同步</button>
     </div>
   </div>
-
-  <!-- 歷史紀錄 -->
-  <div class="section">
-    <h2><span>歷史紀錄</span></h2>
-    <table class="history-table" id="history-table">
-      <thead>
-        <tr>
-          <th>日期</th>
-          <th>工具</th>
-          <th>章節</th>
-          <th style="text-align:right">分數</th>
-          <th style="text-align:right">正確率</th>
-        </tr>
-      </thead>
-      <tbody id="history-tbody"></tbody>
-    </table>
-    <button class="show-more-btn" id="show-more-btn" style="display:none">顯示全部</button>
-  </div>
-
 </div>
 
 <script>
 'use strict';
 
-/* =====================================================
-   ⚙️ 設定區：在這裡修改誰可以使用這個學習中心
-   ===================================================== */
+/* ===========================================================
+   ⚙️ 設定區
+   =========================================================== */
 const USERS = ['淘氣阿珊', '其他人'];
 
-/* =====================================================
-   工具設定
-   ===================================================== */
+// 兩個工具用的 Excel 檔案位置
+const VOCAB_EXCEL_URL = 'vocabulary.xlsx';     // 拼字 + 單字共用
+const CHARS_EXCEL_URL = 'characters.xlsx';     // 中文發音用
+
 const TOOLS = {
   spelling: {
     name: '中翻英拼字',
     nameEn: 'Spelling Quiz',
     icon: '✏️',
+    desc: '看中文，打英文',
     url: 'spelling.html',
-    cls: 'spelling'
+    cls: 'spelling',
+    excelSource: 'vocab',
   },
   vocab: {
     name: '單字測驗',
     nameEn: 'Vocabulary Quiz',
     icon: '📖',
+    desc: '看英文，選中文',
     url: 'EnglishDefinition.html',
-    cls: 'vocab'
+    cls: 'vocab',
+    excelSource: 'vocab',
   },
   chinese: {
     name: '中文發音',
-    nameEn: '中文發音測驗',
+    nameEn: 'Pronunciation',
     icon: '🗣️',
+    desc: '看字念注音',
     url: 'chinese.html',
-    cls: 'chinese'
+    cls: 'chinese',
+    excelSource: 'chars',
   }
 };
 
-/* =====================================================
-   localStorage 介面
-   ===================================================== */
-const LS_CURRENT_USER = 'studyhub.currentUser';
-function lsHistoryKey(user) { return 'studyhub.history.' + user; }
+const HISTORY_PREVIEW = 10;
 
-function getCurrentUser() {
-  return localStorage.getItem(LS_CURRENT_USER) || '';
-}
-function setCurrentUser(name) {
-  localStorage.setItem(LS_CURRENT_USER, name);
-}
+/* ===========================================================
+   localStorage 介面
+   =========================================================== */
+const LS_CURRENT_USER = 'studyhub.currentUser';
+const LS_GIST_CONFIG = 'studyhub.gistConfig';
+
+function lsHistoryKey(user)   { return 'studyhub.history.' + user; }
+function lsLastSyncKey(user)  { return 'studyhub.lastSync.' + user; }
+
+function getCurrentUser()      { return localStorage.getItem(LS_CURRENT_USER) || ''; }
+function setCurrentUser(name)  { localStorage.setItem(LS_CURRENT_USER, name); }
+function clearCurrentUser()    { localStorage.removeItem(LS_CURRENT_USER); }
+
 function loadHistory(user) {
+  try { return JSON.parse(localStorage.getItem(lsHistoryKey(user)) || '[]'); }
+  catch (e) { return []; }
+}
+function saveHistory(user, arr) {
+  localStorage.setItem(lsHistoryKey(user), JSON.stringify(arr));
+}
+
+function loadGistConfig() {
+  try { return JSON.parse(localStorage.getItem(LS_GIST_CONFIG) || 'null'); }
+  catch (e) { return null; }
+}
+function saveGistConfig(cfg) {
+  if (cfg) localStorage.setItem(LS_GIST_CONFIG, JSON.stringify(cfg));
+  else localStorage.removeItem(LS_GIST_CONFIG);
+}
+
+/* ===========================================================
+   章節清單載入（best-effort，從 Excel 抓）
+   =========================================================== */
+const chapterListCache = {
+  vocab: null,
+  chars: null,
+};
+
+async function loadChapterList(source) {
+  if (chapterListCache[source]) return chapterListCache[source];
+  const url = (source === 'vocab') ? VOCAB_EXCEL_URL : CHARS_EXCEL_URL;
   try {
-    return JSON.parse(localStorage.getItem(lsHistoryKey(user)) || '[]');
+    const resp = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' });
+    if (!resp.ok) return [];
+    const buffer = await resp.arrayBuffer();
+    if (buffer.byteLength < 100) return [];
+    const wb = XLSX.read(buffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (rows.length < 2) return [];
+    // 找 Chapter 欄
+    const header = rows[0].map(h => String(h || '').toLowerCase().trim());
+    let chapterColIdx = header.findIndex(h => h === 'chapter' || h === '章節' || h.includes('chapter'));
+    if (chapterColIdx < 0) {
+      chapterColIdx = 1;  // 假設第二欄是章節
+    }
+    const seen = new Set();
+    for (let i = 1; i < rows.length; i++) {
+      const v = String(rows[i][chapterColIdx] || '').trim();
+      if (!v) continue;
+      seen.add(v);
+    }
+    const arr = [...seen]
+      .map(label => {
+        const m = label.match(/(\d+)/);
+        return { label, num: m ? parseInt(m[1], 10) : null };
+      })
+      .filter(x => x.num !== null)
+      .sort((a, b) => a.num - b.num);
+    const chapters = arr.map(x => 'Chapter ' + x.num);
+    chapterListCache[source] = chapters;
+    return chapters;
   } catch (e) {
+    console.warn('章節清單讀取失敗:', source, e);
     return [];
   }
 }
 
-/* =====================================================
-   啟動：選擇使用者
-   ===================================================== */
-function showUserModal() {
-  const wrap = document.getElementById('user-list-buttons');
+/* ===========================================================
+   Gist 同步
+   =========================================================== */
+const SyncManager = {
+  status: 'off',
+  lastError: '',
+
+  isEnabled() {
+    const cfg = loadGistConfig();
+    return !!(cfg && cfg.gistId && cfg.token);
+  },
+
+  async fetchGist(gistId, token) {
+    const r = await fetch(`https://api.github.com/gists/${gistId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github+json',
+      }
+    });
+    if (!r.ok) throw new Error(`GitHub API ${r.status}: ${r.statusText}`);
+    return r.json();
+  },
+
+  async patchGist(gistId, token, files) {
+    const r = await fetch(`https://api.github.com/gists/${gistId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ files })
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      throw new Error(`GitHub API ${r.status}: ${text}`);
+    }
+    return r.json();
+  },
+
+  fileNameFor(user) {
+    return 'profile-' + encodeURIComponent(user) + '.json';
+  },
+
+  mergeRecords(local, remote) {
+    const seen = new Set();
+    const out = [];
+    const sig = r => `${r.date}|${r.tool}|${r.chapter}|${r.correct}|${r.total}`;
+    for (const r of [...local, ...remote]) {
+      const k = sig(r);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      out.push(r);
+    }
+    out.sort((a, b) => a.date.localeCompare(b.date));
+    return out;
+  },
+
+  async pullForUser(user) {
+    const cfg = loadGistConfig();
+    if (!cfg || !cfg.gistId || !cfg.token) return null;
+    const gist = await this.fetchGist(cfg.gistId, cfg.token);
+    const fname = this.fileNameFor(user);
+    const file = gist.files && gist.files[fname];
+    if (!file || !file.content) return [];
+    try {
+      const data = JSON.parse(file.content);
+      if (Array.isArray(data)) return data;
+      if (data && Array.isArray(data.records)) return data.records;
+      return [];
+    } catch (e) {
+      console.warn('遠端 JSON 解析失敗', e);
+      return [];
+    }
+  },
+
+  async pushForUser(user, records) {
+    const cfg = loadGistConfig();
+    if (!cfg || !cfg.gistId || !cfg.token) return;
+    const fname = this.fileNameFor(user);
+    const content = JSON.stringify({
+      version: 1,
+      user: user,
+      updatedAt: new Date().toISOString(),
+      records
+    }, null, 2);
+    await this.patchGist(cfg.gistId, cfg.token, {
+      [fname]: { content }
+    });
+  },
+
+  async syncForUser(user) {
+    if (!this.isEnabled()) {
+      this.status = 'off';
+      return { ok: true, skipped: true };
+    }
+    this.status = 'syncing';
+    this.lastError = '';
+    try {
+      const remote = (await this.pullForUser(user)) || [];
+      const local = loadHistory(user);
+      const merged = this.mergeRecords(local, remote);
+      const localChanged = JSON.stringify(local) !== JSON.stringify(merged);
+      const remoteChanged = JSON.stringify(remote) !== JSON.stringify(merged);
+      if (localChanged) saveHistory(user, merged);
+      if (remoteChanged) await this.pushForUser(user, merged);
+      localStorage.setItem(lsLastSyncKey(user), new Date().toISOString());
+      this.status = 'ok';
+      return { ok: true, count: merged.length, localChanged, remoteChanged };
+    } catch (e) {
+      this.status = 'error';
+      this.lastError = String(e.message || e);
+      console.warn('同步失敗:', e);
+      return { ok: false, error: this.lastError };
+    }
+  },
+
+  async testConnection(gistId, token) {
+    try {
+      const gist = await this.fetchGist(gistId, token);
+      return { ok: true, owner: gist.owner ? gist.owner.login : '(unknown)' };
+    } catch (e) {
+      return { ok: false, error: String(e.message || e) };
+    }
+  }
+};
+
+/* ===========================================================
+   Profile 選擇畫面
+   =========================================================== */
+function renderProfileScreen() {
+  const wrap = document.getElementById('profile-list');
   wrap.innerHTML = '';
   USERS.forEach(name => {
     const btn = document.createElement('button');
     btn.textContent = name;
-    btn.addEventListener('click', () => {
-      setCurrentUser(name);
-      document.getElementById('user-modal').classList.remove('show');
-      renderAll();
-    });
+    btn.addEventListener('click', () => selectProfile(name));
     wrap.appendChild(btn);
   });
-  document.getElementById('user-modal').classList.add('show');
+  showProfileScreen();
 }
 
-document.getElementById('switch-user-btn').addEventListener('click', showUserModal);
+function showProfileScreen() {
+  document.getElementById('profile-screen').classList.remove('hidden');
+  document.getElementById('main-screen').classList.add('hidden');
+}
 
-/* =====================================================
-   主渲染
-   ===================================================== */
-let currentRange = 30;  // 7 / 30 / 'all'
+function showMainScreen() {
+  document.getElementById('profile-screen').classList.add('hidden');
+  document.getElementById('main-screen').classList.remove('hidden');
+}
+
+async function selectProfile(name) {
+  setCurrentUser(name);
+  showMainScreen();
+  await renderMain();
+  if (SyncManager.isEnabled()) {
+    updateSyncPill('syncing');
+    const res = await SyncManager.syncForUser(name);
+    if (res.ok && !res.skipped) {
+      updateSyncPill('ok');
+      await renderMain();
+    } else if (!res.ok) {
+      updateSyncPill('error', res.error);
+    }
+  }
+}
+
+document.getElementById('switch-user-btn').addEventListener('click', () => {
+  clearCurrentUser();
+  showProfileScreen();
+});
+
+/* ===========================================================
+   主畫面
+   =========================================================== */
 let showAllHistory = false;
-const HISTORY_PREVIEW = 10;
 
-function renderAll() {
+async function renderMain() {
   const user = getCurrentUser();
   if (!user || !USERS.includes(user)) {
-    document.getElementById('main-container').style.display = 'none';
-    showUserModal();
+    showProfileScreen();
     return;
   }
-  document.getElementById('main-container').style.display = '';
   document.getElementById('topbar-user-name').textContent = user;
-
   const history = loadHistory(user);
-
   renderTopbarStats(history);
-  renderToolCards(user, history);
-  renderHeatmap(history);
-  renderAccuracy(history);
-  renderTopWrong(history);
+  renderToolsQuick(user, history);
+  await renderToolSections(user, history);
   renderHistoryTable(history);
+  updateSyncPill();
 }
 
 function renderTopbarStats(history) {
@@ -715,7 +1149,6 @@ function renderTopbarStats(history) {
     el.textContent = '尚無紀錄';
     return;
   }
-  // 連續打卡天數
   const streak = computeStreak(history);
   const total = history.length;
   let txt = `共完成 ${total} 次練習`;
@@ -724,216 +1157,193 @@ function renderTopbarStats(history) {
 }
 
 function computeStreak(history) {
-  // 從今天往回數，每天至少有一筆紀錄就 +1
   if (!history.length) return 0;
   const dates = new Set(history.map(h => h.date.slice(0, 10)));
   let streak = 0;
   const d = new Date();
+  let started = false;
   for (let i = 0; i < 365; i++) {
     const key = d.toISOString().slice(0, 10);
     if (dates.has(key)) {
       streak++;
+      started = true;
     } else {
-      // 第一天就沒打卡：直接 0；不然斷了就停
-      if (i === 0) {
-        // 今天沒打卡，但昨天有的話 streak 算到昨天
-        d.setDate(d.getDate() - 1);
-        continue;
-      }
-      break;
+      if (started) break;
+      if (i > 0) break;
     }
     d.setDate(d.getDate() - 1);
   }
   return streak;
 }
 
-function renderToolCards(user, history) {
-  const grid = document.getElementById('tools-grid');
+function renderToolsQuick(user, history) {
+  const grid = document.getElementById('tools-quick');
   grid.innerHTML = '';
   Object.entries(TOOLS).forEach(([toolKey, tool]) => {
-    // 找這個工具最近的一筆
-    const recent = [...history].reverse().find(h => h.tool === toolKey);
+    const recs = history.filter(h => h.tool === toolKey);
+    const recent = recs.length ? recs.reduce((a, b) => a.date > b.date ? a : b) : null;
     const card = document.createElement('a');
-    card.className = 'tool-card ' + tool.cls;
-    // 把使用者名字透過 URL 帶過去
+    card.className = 'tool-quick-card ' + tool.cls;
     card.href = tool.url + '?user=' + encodeURIComponent(user);
-
-    let recentHtml = '<span style="color:var(--gray); font-style:italic">尚未練習過</span>';
+    let progHtml = '<span style="color:var(--gray)">尚未練習</span>';
     if (recent) {
       const pct = recent.total > 0 ? Math.round(recent.correct / recent.total * 100) : 0;
-      const pctCls = pct >= 90 ? 'high' : (pct < 70 ? 'low' : '');
-      const dateStr = formatDate(recent.date);
-      const perfect = recent.wrong === 0 ? ' ✨' : '';
-      recentHtml = `
-        <strong>${recent.correct} / ${recent.total}</strong>
-        <span style="color: var(--ink-soft); margin-left:6px; font-size:13px">${pct}%${perfect}</span>
-        <div class="recent-meta">${dateStr} · ${escapeHtml(recent.chapter)}</div>
-      `;
+      progHtml = `上次：${escapeHtml(recent.chapter)} · ${recent.correct}/${recent.total} (${pct}%)`;
     }
-
     card.innerHTML = `
-      <div class="tool-icon">${tool.icon}</div>
-      <div class="tool-name">${tool.name}</div>
-      <div class="tool-name-en">${tool.nameEn}</div>
-      <div class="tool-recent">${recentHtml}</div>
+      <div class="tic">${tool.icon}</div>
+      <div class="tname">${tool.name}</div>
+      <div class="tdesc">${tool.desc}</div>
+      <div class="tprog">${progHtml}</div>
     `;
     grid.appendChild(card);
   });
 }
 
-/* ----- 練習熱度長條圖 ----- */
-function renderHeatmap(history) {
-  const heatmap = document.getElementById('heatmap');
-  const axis = document.getElementById('heatmap-axis');
-  heatmap.innerHTML = '';
-  axis.innerHTML = '';
-
-  // 決定起訖日
-  let days, startDate;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  if (currentRange === 'all') {
-    if (history.length === 0) {
-      heatmap.innerHTML = '<div class="empty-hint" style="width:100%">尚無紀錄</div>';
-      return;
-    }
-    const earliestStr = history.reduce((min, h) => h.date < min ? h.date : min, history[0].date);
-    startDate = new Date(earliestStr.slice(0, 10));
-    days = Math.max(1, Math.round((today - startDate) / 86400000) + 1);
-    if (days > 90) days = 90;  // 太多會擠
-    startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - days + 1);
-  } else {
-    days = currentRange;
-    startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - days + 1);
-  }
-
-  // 統計每日次數
-  const dayCount = {};
-  history.forEach(h => {
-    const k = h.date.slice(0, 10);
-    dayCount[k] = (dayCount[k] || 0) + 1;
-  });
-
-  // 找最大值決定 bar 高度
-  let maxCount = 1;
-  for (let i = 0; i < days; i++) {
-    const d = new Date(startDate);
-    d.setDate(startDate.getDate() + i);
-    const c = dayCount[d.toISOString().slice(0, 10)] || 0;
-    if (c > maxCount) maxCount = c;
-  }
-
-  for (let i = 0; i < days; i++) {
-    const d = new Date(startDate);
-    d.setDate(startDate.getDate() + i);
-    const k = d.toISOString().slice(0, 10);
-    const c = dayCount[k] || 0;
-    const bar = document.createElement('div');
-    bar.className = 'bar' + (c > 0 ? ' has-data' : '');
-    const heightPct = c > 0 ? Math.max(8, (c / maxCount) * 100) : 4;
-    bar.style.height = heightPct + '%';
-    const tip = document.createElement('div');
-    tip.className = 'bar-tip';
-    tip.textContent = `${k.slice(5).replace('-', '/')} · ${c} 次`;
-    bar.appendChild(tip);
-    heatmap.appendChild(bar);
-  }
-
-  // 軸標：起、中、迄
-  const fmt = d => `${d.getMonth() + 1}/${d.getDate()}`;
-  const mid = new Date(startDate);
-  mid.setDate(startDate.getDate() + Math.floor(days / 2));
-  axis.innerHTML = `<span>${fmt(startDate)}</span><span>${fmt(mid)}</span><span>${fmt(today)}</span>`;
-}
-
-/* ----- 各工具平均正確率 ----- */
-function renderAccuracy(history) {
-  const wrap = document.getElementById('accuracy-list');
+async function renderToolSections(user, history) {
+  const wrap = document.getElementById('tool-sections');
   wrap.innerHTML = '';
-  // 過濾範圍
-  const filtered = filterByRange(history);
+  const [vocabChapters, charsChapters] = await Promise.all([
+    loadChapterList('vocab'),
+    loadChapterList('chars')
+  ]);
+  const chapterListByTool = {
+    spelling: vocabChapters,
+    vocab: vocabChapters,
+    chinese: charsChapters,
+  };
   Object.entries(TOOLS).forEach(([toolKey, tool]) => {
-    const recs = filtered.filter(h => h.tool === toolKey);
-    let bar;
-    if (recs.length === 0) {
-      bar = `
-        <div class="accuracy-row ${tool.cls}">
-          <div class="acc-label">${tool.name.slice(0, 4)}</div>
-          <div class="acc-bar-wrap"><div class="acc-bar" style="width:0%"></div></div>
-          <div class="acc-empty">無紀錄</div>
-        </div>`;
-    } else {
-      const correct = recs.reduce((s, h) => s + h.correct, 0);
-      const total = recs.reduce((s, h) => s + h.total, 0);
-      const pct = total > 0 ? Math.round(correct / total * 100) : 0;
-      bar = `
-        <div class="accuracy-row ${tool.cls}">
-          <div class="acc-label">${tool.name.slice(0, 4)}</div>
-          <div class="acc-bar-wrap"><div class="acc-bar" style="width:${pct}%"></div></div>
-          <div class="acc-pct">${pct}%</div>
-        </div>`;
-    }
-    wrap.insertAdjacentHTML('beforeend', bar);
+    const recs = history.filter(h => h.tool === toolKey);
+    const byChapter = {};
+    recs.forEach(r => {
+      const k = r.chapter || '?';
+      if (!byChapter[k]) byChapter[k] = { times: 0, lastDate: '', lastPct: 0, perfect: false };
+      byChapter[k].times++;
+      if (r.date > byChapter[k].lastDate) {
+        byChapter[k].lastDate = r.date;
+        byChapter[k].lastPct = r.total > 0 ? Math.round(r.correct / r.total * 100) : 0;
+      }
+      if (r.wrong === 0) byChapter[k].perfect = true;
+    });
+    const knownChapters = chapterListByTool[toolKey] || [];
+    const chaptersToShow = knownChapters.length > 0 ? knownChapters : Object.keys(byChapter).sort((a, b) => {
+      const na = parseInt((a.match(/\d+/) || [0])[0]);
+      const nb = parseInt((b.match(/\d+/) || [0])[0]);
+      return na - nb;
+    });
+    const doneCount = chaptersToShow.filter(c => byChapter[c]).length;
+    const totalCount = chaptersToShow.length;
+    const section = document.createElement('div');
+    section.className = 'tool-section ' + tool.cls;
+    section.innerHTML = `
+      <div class="ts-header">
+        <div class="ts-title">
+          <h2>${tool.icon} ${tool.name}</h2>
+          <span class="ts-en">${tool.nameEn}</span>
+        </div>
+        <div class="ts-progress">
+          ${totalCount > 0 ? `已完成 <span class="done">${doneCount}</span> / ${totalCount} 章` : '尚無章節資料'}
+        </div>
+      </div>
+      <div class="ts-body">
+        <div class="chapter-grid-wrap"></div>
+        <div class="top-wrong-col"></div>
+      </div>
+    `;
+    wrap.appendChild(section);
+    renderChapterGrid(section.querySelector('.chapter-grid-wrap'), tool, chaptersToShow, byChapter, user);
+    renderTopWrongFor(section.querySelector('.top-wrong-col'), recs, tool);
   });
 }
 
-/* ----- 最常錯的題目 ----- */
-function renderTopWrong(history) {
-  const ul = document.getElementById('top-wrong-list');
-  ul.innerHTML = '';
-  const filtered = filterByRange(history);
-  // 聚合
-  const counter = {};  // key: tool|word, value: { tool, word, count }
-  filtered.forEach(h => {
+function renderChapterGrid(container, tool, chapters, byChapter, user) {
+  if (chapters.length === 0) {
+    container.innerHTML = '<div class="grid-label">章節進度</div><div class="chapter-empty-hint">尚未讀到章節清單。完成過的章節會出現在歷史紀錄中。</div>';
+    return;
+  }
+  const PER_ROW = 10;
+  let html = `<div class="grid-label">章節進度（每排 ${PER_ROW} 章）</div><div class="chapter-grid">`;
+  for (let i = 0; i < chapters.length; i += PER_ROW) {
+    const slice = chapters.slice(i, i + PER_ROW);
+    html += `<div class="chapter-grid-row">`;
+    html += `<span class="row-label">${i + 1}–${i + slice.length}</span>`;
+    slice.forEach((ch, idx) => {
+      const num = i + idx + 1;
+      const info = byChapter[ch];
+      const done = !!info;
+      const multi = done && info.times > 1;
+      const perfect = done && info.perfect;
+      const cls = ['chapter-cell'];
+      if (done) cls.push('done');
+      if (multi) cls.push('multi');
+      if (perfect) cls.push('perfect');
+      const href = tool.url + '?user=' + encodeURIComponent(user) + '&chapter=' + encodeURIComponent(ch);
+      let tipHtml = `Chapter ${num}`;
+      if (done) {
+        const dateStr = formatShortDate(info.lastDate);
+        tipHtml += `<br>${dateStr} · ${info.lastPct}%`;
+        if (info.times > 1) tipHtml += ` · ${info.times} 次`;
+        if (info.perfect) tipHtml += ' ★';
+      } else {
+        tipHtml += '<br>尚未練習';
+      }
+      const inner = done
+        ? `<span class="check">${perfect ? '★' : '✓'}</span>`
+        : num;
+      html += `<a class="${cls.join(' ')}" href="${href}">${inner}<span class="cell-tip">${tipHtml}</span></a>`;
+    });
+    for (let f = slice.length; f < PER_ROW; f++) {
+      html += `<span class="chapter-cell" style="visibility:hidden"></span>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+function renderTopWrongFor(container, recs, tool) {
+  const counter = {};
+  recs.forEach(h => {
     if (!Array.isArray(h.wrongList)) return;
     h.wrongList.forEach(w => {
       const word = (typeof w === 'string') ? w : (w.word || w.target || w.question || '');
       if (!word) return;
-      const k = h.tool + '|' + word;
-      if (!counter[k]) counter[k] = { tool: h.tool, word, count: 0 };
-      counter[k].count++;
+      counter[word] = (counter[word] || 0) + 1;
     });
   });
-  const list = Object.values(counter)
-    .filter(x => x.count >= 2)  // 只列錯 2 次以上
+  const list = Object.entries(counter)
+    .map(([word, count]) => ({ word, count }))
+    .filter(x => x.count >= 2)
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
-
+  let html = `<div class="col-label">最常錯的題目</div>`;
   if (list.length === 0) {
-    ul.innerHTML = '<li class="empty-hint" style="border-bottom:0">這段時間沒有重複錯誤的題目 ✨</li>';
-    return;
+    html += `<div class="top-wrong-empty">沒有重複錯誤的題目 ✨</div>`;
+  } else {
+    html += `<ul class="top-wrong-list">`;
+    list.forEach(({ word, count }) => {
+      html += `<li><span class="word">${escapeHtml(word)}</span><span class="count">錯 ${count} 次</span></li>`;
+    });
+    html += `</ul>`;
   }
-  list.forEach(({ tool, word, count }) => {
-    const li = document.createElement('li');
-    const cls = TOOLS[tool] ? TOOLS[tool].cls : '';
-    li.innerHTML = `
-      <span class="word"><span class="tag ${cls}">${TOOLS[tool] ? TOOLS[tool].name.slice(0, 2) : tool}</span> ${escapeHtml(word)}</span>
-      <span class="count">錯 ${count} 次</span>
-    `;
-    ul.appendChild(li);
-  });
+  container.innerHTML = html;
 }
 
-/* ----- 歷史紀錄表 ----- */
 function renderHistoryTable(history) {
   const tbody = document.getElementById('history-tbody');
   tbody.innerHTML = '';
   if (history.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-hint" style="text-align:center; padding:32px">— 尚未有紀錄 —</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:32px; color:var(--gray); font-style:italic">— 尚未有紀錄 —</td></tr>`;
     document.getElementById('show-more-btn').style.display = 'none';
     return;
   }
-
   const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
   const display = showAllHistory ? sorted : sorted.slice(0, HISTORY_PREVIEW);
-
   display.forEach(h => {
     const tool = TOOLS[h.tool] || { name: h.tool, cls: '' };
     const pct = h.total > 0 ? Math.round(h.correct / h.total * 100) : 0;
     const pctCls = pct >= 90 ? 'high' : (pct < 70 ? 'low' : '');
-    const perfect = h.wrong === 0 ? ' <span class="h-perfect">✨</span>' : '';
+    const perfect = h.wrong === 0 ? ' <span class="h-perfect">★</span>' : '';
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td class="h-date">${formatDateTime(h.date)}</td>
@@ -944,7 +1354,6 @@ function renderHistoryTable(history) {
     `;
     tbody.appendChild(tr);
   });
-
   const moreBtn = document.getElementById('show-more-btn');
   if (sorted.length > HISTORY_PREVIEW) {
     moreBtn.style.display = '';
@@ -953,70 +1362,162 @@ function renderHistoryTable(history) {
     moreBtn.style.display = 'none';
   }
 }
-
 document.getElementById('show-more-btn').addEventListener('click', () => {
   showAllHistory = !showAllHistory;
-  renderAll();
+  renderHistoryTable(loadHistory(getCurrentUser()));
 });
 
-/* ----- 範圍切換 ----- */
-document.querySelectorAll('.range-tabs button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const r = btn.getAttribute('data-range');
-    currentRange = (r === 'all') ? 'all' : parseInt(r, 10);
-    document.querySelectorAll('.range-tabs button').forEach(b => b.classList.toggle('active', b === btn));
-    renderAll();
-  });
+/* ===========================================================
+   設定 modal
+   =========================================================== */
+function openSettingsModal() {
+  const cfg = loadGistConfig() || {};
+  document.getElementById('gist-id-input').value = cfg.gistId || '';
+  document.getElementById('gist-token-input').value = cfg.token || '';
+  document.getElementById('settings-test-result').classList.remove('show', 'ok', 'fail');
+  document.getElementById('settings-disable-btn').style.display = SyncManager.isEnabled() ? '' : 'none';
+  document.getElementById('settings-modal').classList.add('show');
+}
+function closeSettingsModal() {
+  document.getElementById('settings-modal').classList.remove('show');
+}
+
+document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
+document.getElementById('open-settings-from-profile').addEventListener('click', openSettingsModal);
+document.getElementById('settings-cancel-btn').addEventListener('click', closeSettingsModal);
+document.getElementById('settings-modal').addEventListener('click', (e) => {
+  if (e.target.id === 'settings-modal') closeSettingsModal();
 });
 
-function filterByRange(history) {
-  if (currentRange === 'all') return history;
-  const cutoff = new Date();
-  cutoff.setHours(0, 0, 0, 0);
-  cutoff.setDate(cutoff.getDate() - currentRange + 1);
-  return history.filter(h => new Date(h.date) >= cutoff);
-}
-
-/* ----- 工具函式 ----- */
-function escapeHtml(s) {
-  if (s == null) return '';
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function formatDate(iso) {
-  // YYYY-MM-DD → M/D
-  const d = new Date(iso);
-  return `${d.getMonth() + 1}/${d.getDate()}`;
-}
-
-function formatDateTime(iso) {
-  const d = new Date(iso);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const dStart = new Date(d);
-  dStart.setHours(0, 0, 0, 0);
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  if (dStart.getTime() === today.getTime()) {
-    return `今天 ${hh}:${mm}`;
-  } else if (dStart.getTime() === yesterday.getTime()) {
-    return `昨天 ${hh}:${mm}`;
+document.getElementById('settings-test-btn').addEventListener('click', async () => {
+  const gistId = document.getElementById('gist-id-input').value.trim();
+  const token = document.getElementById('gist-token-input').value.trim();
+  const r = document.getElementById('settings-test-result');
+  r.className = 'test-result show';
+  r.textContent = '測試中…';
+  if (!gistId || !token) {
+    r.classList.add('fail');
+    r.textContent = '請先填 Gist ID 與 Token';
+    return;
+  }
+  const res = await SyncManager.testConnection(gistId, token);
+  if (res.ok) {
+    r.classList.add('ok');
+    r.textContent = `✓ 連線成功（Gist 擁有者：${res.owner}）`;
   } else {
-    return `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm}`;
+    r.classList.add('fail');
+    r.textContent = `✗ 連線失敗：${res.error}`;
+  }
+});
+
+document.getElementById('settings-save-btn').addEventListener('click', async () => {
+  const gistId = document.getElementById('gist-id-input').value.trim();
+  const token = document.getElementById('gist-token-input').value.trim();
+  const r = document.getElementById('settings-test-result');
+  if (!gistId || !token) {
+    r.className = 'test-result show fail';
+    r.textContent = '請先填 Gist ID 與 Token';
+    return;
+  }
+  r.className = 'test-result show';
+  r.textContent = '驗證中…';
+  const res = await SyncManager.testConnection(gistId, token);
+  if (!res.ok) {
+    r.className = 'test-result show fail';
+    r.textContent = `✗ 驗證失敗：${res.error}`;
+    return;
+  }
+  saveGistConfig({ gistId, token });
+  closeSettingsModal();
+  const user = getCurrentUser();
+  if (user) {
+    updateSyncPill('syncing');
+    const sres = await SyncManager.syncForUser(user);
+    updateSyncPill(sres.ok ? 'ok' : 'error', sres.error);
+    await renderMain();
+  } else {
+    updateSyncPill('ok');
+  }
+});
+
+document.getElementById('settings-disable-btn').addEventListener('click', () => {
+  if (!confirm('關閉同步？\n（本機紀錄會留下，但不會再從 Gist 拉取或推送）')) return;
+  saveGistConfig(null);
+  closeSettingsModal();
+  updateSyncPill();
+});
+
+/* ===========================================================
+   sync pill 顯示
+   =========================================================== */
+function updateSyncPill(forceState, errorMsg) {
+  const pill = document.getElementById('sync-pill');
+  if (!pill) return;
+  const enabled = SyncManager.isEnabled();
+  if (!enabled) {
+    pill.style.display = 'none';
+    return;
+  }
+  pill.style.display = '';
+  pill.classList.remove('on', 'error');
+  const txt = pill.querySelector('.sync-text');
+  const state = forceState || SyncManager.status;
+  if (state === 'syncing') {
+    txt.textContent = '同步中…';
+  } else if (state === 'error') {
+    pill.classList.add('error');
+    txt.textContent = '同步失敗 (重試請重整頁面)';
+    pill.title = errorMsg || SyncManager.lastError || '';
+  } else if (state === 'ok') {
+    pill.classList.add('on');
+    const user = getCurrentUser();
+    const last = user ? localStorage.getItem(lsLastSyncKey(user)) : '';
+    txt.textContent = last ? `已同步 · ${formatTime(last)}` : '已同步';
+  } else {
+    txt.textContent = '同步已啟用';
+    pill.classList.add('on');
   }
 }
 
-/* =====================================================
-   啟動
-   ===================================================== */
-renderAll();
+/* ===========================================================
+   工具函式
+   =========================================================== */
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function formatShortDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+function formatTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+function formatDateTime(iso) {
+  const d = new Date(iso);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const dStart = new Date(d); dStart.setHours(0,0,0,0);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  if (dStart.getTime() === today.getTime()) return `今天 ${hh}:${mm}`;
+  if (dStart.getTime() === yesterday.getTime()) return `昨天 ${hh}:${mm}`;
+  return `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm}`;
+}
+
+/* ===========================================================
+   啟動：每次進來都從 Profile 選擇開始
+   =========================================================== */
+clearCurrentUser();
+renderProfileScreen();
 </script>
 </body>
 </html>

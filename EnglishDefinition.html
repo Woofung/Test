@@ -6,13 +6,51 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 // =====================================================
-// 學習中心整合
+// 學習中心整合（含 Gist 同步推送）
 // =====================================================
 (function() {
   const params = new URLSearchParams(location.search);
   const user = params.get('user') || '';
   const HOME_URL = 'index.html';
+  const LS_GIST_CONFIG = 'studyhub.gistConfig';
   function lsHistoryKey(u) { return 'studyhub.history.' + u; }
+  function lsLastSyncKey(u) { return 'studyhub.lastSync.' + u; }
+  function loadGistConfig() {
+    try { return JSON.parse(localStorage.getItem(LS_GIST_CONFIG) || 'null'); }
+    catch (e) { return null; }
+  }
+  function fileNameFor(u) { return 'profile-' + encodeURIComponent(u) + '.json'; }
+  
+  // 把整個使用者的紀錄推到 Gist（背景跑，失敗不影響使用者）
+  async function pushToGist(u) {
+    const cfg = loadGistConfig();
+    if (!cfg || !cfg.gistId || !cfg.token) return;
+    try {
+      const records = JSON.parse(localStorage.getItem(lsHistoryKey(u)) || '[]');
+      const content = JSON.stringify({
+        version: 1, user: u,
+        updatedAt: new Date().toISOString(),
+        records
+      }, null, 2);
+      const r = await fetch('https://api.github.com/gists/' + cfg.gistId, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer ' + cfg.token,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ files: { [fileNameFor(u)]: { content } } })
+      });
+      if (r.ok) {
+        localStorage.setItem(lsLastSyncKey(u), new Date().toISOString());
+      } else {
+        console.warn('Gist push failed:', r.status);
+      }
+    } catch (e) {
+      console.warn('Gist push error:', e);
+    }
+  }
+  
   window.QuizHistory = {
     user: user,
     enabled: !!user,
@@ -23,6 +61,8 @@
         const arr = JSON.parse(localStorage.getItem(key) || '[]');
         arr.push(record);
         localStorage.setItem(key, JSON.stringify(arr));
+        // 背景推送
+        pushToGist(user);
         return true;
       } catch (e) { console.warn('儲存紀錄失敗:', e); return false; }
     },
