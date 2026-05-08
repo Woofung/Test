@@ -1012,6 +1012,8 @@ function startQuiz(words) {
   stats = { correct: 0, wrong: 0, total: questions.length, wrongList: [] };
   reviewQueue = [];
   isReviewRound = false;
+  // 記錄考試開始時間
+  window.__quizStartTime = Date.now();
   
   document.getElementById('round-tag').textContent = 'FIRST ROUND';
   document.getElementById('round-tag').classList.remove('review');
@@ -1265,12 +1267,16 @@ function showResult() {
   // === 寫入學習中心歷史紀錄 ===
   if (window.QuizHistory && window.QuizHistory.enabled && stats.total > 0) {
     try {
+      const durationSeconds = window.__quizStartTime
+        ? Math.max(0, Math.round((Date.now() - window.__quizStartTime) / 1000))
+        : null;
       window.QuizHistory.save({
         tool: 'vocab',
         chapter: currentChapter || '',
         correct: stats.correct,
         wrong: stats.wrong,
         total: stats.total,
+        durationSeconds: durationSeconds,
         wrongList: stats.wrongList.map(w => ({
           word: w.word || '',
           correctDef: w.correctDef || '',

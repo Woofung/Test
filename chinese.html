@@ -1666,10 +1666,15 @@ function startQuiz(charsOverride) {
   // charsOverride：選填——指定字陣列（用於重考錯題）。
   // 不傳就用 currentChapterChars。每次都重新洗牌。
   const source = (charsOverride && charsOverride.length > 0) ? charsOverride : currentChapterChars;
+  const isRetryWrong = !!(charsOverride && charsOverride.length > 0);
   questions = shuffle(source).slice(0);
   qIndex = 0;
   stats = { correct: 0, wrong: 0, total: questions.length };
   wrongChars = [];
+  // 記錄考試開始時間（手動模式不計、重考錯題時也只用最初的時間，但因為手動模式之外都會 reset，這裡簡化：每次正常 startQuiz 都更新；重考錯題不更新）
+  if (!manualMode && !isRetryWrong) {
+    window.__quizStartTime = Date.now();
+  }
   document.getElementById('result-overlay').classList.remove('show');
   shouldKeepListening = !manualMode;
   // 手動模式下重新顯示觸控翻頁區
@@ -1938,12 +1943,16 @@ function showResult() {
     try {
       const chapterLabel = (currentChapterNum != null)
         ? ('Chapter ' + currentChapterNum) : '';
+      const durationSeconds = window.__quizStartTime
+        ? Math.max(0, Math.round((Date.now() - window.__quizStartTime) / 1000))
+        : null;
       window.QuizHistory.save({
         tool: 'chinese',
         chapter: chapterLabel,
         correct: stats.correct,
         wrong: stats.wrong,
         total: stats.total,
+        durationSeconds: durationSeconds,
         wrongList: (wrongChars || []).map(c => ({ word: c })),
         date: new Date().toISOString()
       });

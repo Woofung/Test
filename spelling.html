@@ -1440,6 +1440,8 @@ function startQuiz(words) {
   stats = { correct: 0, wrong: 0, total: questions.length, wrongList: [] };
   reviewQueue = [];
   isReviewRound = false;
+  // 記錄考試開始時間（給平均完成時間用；只在第一輪開始時記）
+  window.__quizStartTime = Date.now();
   
   document.getElementById('round-tag').textContent = 'FIRST ROUND';
   document.getElementById('round-tag').classList.remove('review');
@@ -1796,16 +1798,18 @@ function showResult() {
   }
 
   // === 寫入學習中心歷史紀錄 ===
-  // 只在「完成全部題目」時存（手動瀏覽模式不會走到 showResult；只考錯題目前是把 stats 重置後再開始，第一輪結束的 showResult 才有完整成績）
   if (window.QuizHistory && window.QuizHistory.enabled && stats.total > 0) {
     try {
+      const durationSeconds = window.__quizStartTime
+        ? Math.max(0, Math.round((Date.now() - window.__quizStartTime) / 1000))
+        : null;
       window.QuizHistory.save({
         tool: 'spelling',
         chapter: currentChapter || '',
         correct: stats.correct,
         wrong: stats.wrong,
         total: stats.total,
-        // 只記英文正解（簡化結構），方便首頁聚合「最常錯」
+        durationSeconds: durationSeconds,
         wrongList: stats.wrongList.map(w => ({
           word: (w.validAnswers || '').split(' / ')[0] || '',
           userAnswer: w.userAnswer || '',

@@ -217,59 +217,7 @@
     background: currentColor;
   }
 
-  /* ====== 工具卡片：頂部一排（Quick Access） ====== */
-  .tools-quick {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-bottom: 36px;
-  }
-  .tool-quick-card {
-    border: 1.5px solid var(--ink);
-    background: var(--paper-card);
-    padding: 20px 18px;
-    cursor: pointer;
-    text-decoration: none;
-    color: var(--ink);
-    transition: all 0.18s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    position: relative;
-    overflow: hidden;
-  }
-  .tool-quick-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 0 var(--ink);
-  }
-  .tool-quick-card .tic {
-    font-size: 26px;
-    line-height: 1;
-    margin-bottom: 4px;
-  }
-  .tool-quick-card .tname {
-    font-family: 'Didot', serif;
-    font-size: 19px;
-    letter-spacing: 1px;
-  }
-  .tool-quick-card .tdesc {
-    font-style: italic;
-    color: var(--ink-soft);
-    font-size: 12px;
-    letter-spacing: 1px;
-  }
-  .tool-quick-card .tprog {
-    font-size: 12px;
-    color: var(--ink-soft);
-    margin-top: 8px;
-    border-top: 1px dashed var(--rule);
-    padding-top: 6px;
-  }
-  .tool-quick-card.spelling::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--accent); }
-  .tool-quick-card.vocab::before    { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--blue); }
-  .tool-quick-card.chinese::before  { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--purple); }
-
-  /* ====== 工具進度區（每個工具一個區塊：章節格子 + 最常錯） ====== */
+  /* ====== 工具進度區（每個工具一個區塊：章節格子 + 進度資訊） ====== */
   .tool-section {
     margin-bottom: 40px;
     border: 1px solid var(--rule);
@@ -321,17 +269,49 @@
     margin: 0 4px;
   }
 
-  .ts-body {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 220px;
-    gap: 28px;
+  /* 開始考試按鈕 */
+  .tool-section .ts-start-btn {
+    background: var(--ink);
+    color: var(--paper);
+    border: 1.5px solid var(--ink);
+    padding: 8px 18px;
+    font-family: 'Didot', serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 2px;
+    text-decoration: none;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
-  /* 在窄一點的螢幕（iPad 直立 + 手機）改成單欄 */
-  @media (max-width: 760px) {
-    .ts-body {
-      grid-template-columns: 1fr;
-      gap: 22px;
-    }
+  .tool-section.spelling .ts-start-btn { background: var(--accent); border-color: var(--accent); }
+  .tool-section.vocab    .ts-start-btn { background: var(--blue); border-color: var(--blue); }
+  .tool-section.chinese  .ts-start-btn { background: var(--purple); border-color: var(--purple); }
+  .tool-section .ts-start-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 0 var(--ink);
+  }
+
+  /* 區塊右下：平均完成時間 */
+  .tool-section .ts-footer {
+    margin-top: 14px;
+    text-align: right;
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 1px;
+  }
+  .tool-section .ts-footer .ts-avg-time {
+    font-family: 'Didot', serif;
+    font-style: normal;
+    color: var(--ink);
+    margin-left: 4px;
+  }
+
+  .ts-body {
+    /* 單欄佈局（章節格子佔滿全寬） */
   }
 
   /* === 章節格子 === */
@@ -468,58 +448,6 @@
     color: var(--gray);
     font-style: italic;
     padding: 14px 0;
-  }
-
-  /* === 最常錯的題目 === */
-  .top-wrong-col {
-    border-left: 1px dashed var(--rule);
-    padding-left: 22px;
-  }
-  @media (max-width: 760px) {
-    .top-wrong-col {
-      border-left: 0;
-      border-top: 1px dashed var(--rule);
-      padding-left: 0;
-      padding-top: 18px;
-    }
-  }
-  .top-wrong-col .col-label {
-    font-style: italic;
-    color: var(--ink-soft);
-    font-size: 12px;
-    letter-spacing: 2px;
-    margin-bottom: 10px;
-    text-transform: uppercase;
-  }
-  .top-wrong-list { font-size: 14px; }
-  .top-wrong-list li {
-    list-style: none;
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-    padding: 6px 0;
-    border-bottom: 1px dashed var(--rule-light);
-  }
-  .top-wrong-list li:last-child { border-bottom: 0; }
-  .top-wrong-list .word {
-    font-family: 'Iowan Old Style', serif;
-    font-size: 15px;
-    word-break: break-word;
-    flex: 1;
-    min-width: 0;
-  }
-  .top-wrong-list .count {
-    color: var(--accent);
-    font-style: italic;
-    font-size: 12px;
-    white-space: nowrap;
-  }
-  .top-wrong-empty {
-    color: var(--gray);
-    font-style: italic;
-    font-size: 13px;
-    padding: 12px 0;
   }
 
   /* ====== 歷史紀錄 ====== */
@@ -729,7 +657,6 @@
     .brand h1 { font-size: 28px; }
     .topbar { flex-direction: column; align-items: flex-start; }
     .user-panel { align-items: flex-start; }
-    .tools-quick { grid-template-columns: 1fr; }
     .history-table { font-size: 12px; }
     .history-table th, .history-table td { padding: 8px 10px; }
     .tool-section { padding: 18px 16px 22px; }
@@ -780,10 +707,7 @@
       </div>
     </div>
 
-    <!-- 三個工具快速進入 -->
-    <div class="tools-quick" id="tools-quick"></div>
-
-    <!-- 工具進度區（章節格子 + 最常錯） -->
+    <!-- 工具進度區（章節格子） -->
     <div id="tool-sections"></div>
 
     <!-- 歷史紀錄 -->
@@ -859,7 +783,7 @@ const CHARS_EXCEL_URL = 'characters.xlsx';     // 中文發音用
 
 const TOOLS = {
   spelling: {
-    name: '中翻英拼字',
+    name: '英文拼字',
     nameEn: 'Spelling Quiz',
     icon: '✏️',
     desc: '看中文，打英文',
@@ -868,7 +792,7 @@ const TOOLS = {
     excelSource: 'vocab',
   },
   vocab: {
-    name: '單字測驗',
+    name: '英文翻譯',
     nameEn: 'Vocabulary Quiz',
     icon: '📖',
     desc: '看英文，選中文',
@@ -1154,7 +1078,6 @@ async function renderMain() {
   document.getElementById('topbar-user-name').textContent = user;
   const history = loadHistory(user);
   renderTopbarStats(history);
-  renderToolsQuick(user, history);
   await renderToolSections(user, history);
   renderHistoryTable(history);
   updateSyncPill();
@@ -1193,30 +1116,6 @@ function computeStreak(history) {
   return streak;
 }
 
-function renderToolsQuick(user, history) {
-  const grid = document.getElementById('tools-quick');
-  grid.innerHTML = '';
-  Object.entries(TOOLS).forEach(([toolKey, tool]) => {
-    const recs = history.filter(h => h.tool === toolKey);
-    const recent = recs.length ? recs.reduce((a, b) => a.date > b.date ? a : b) : null;
-    const card = document.createElement('a');
-    card.className = 'tool-quick-card ' + tool.cls;
-    card.href = tool.url + '?user=' + encodeURIComponent(user);
-    let progHtml = '<span style="color:var(--gray)">尚未練習</span>';
-    if (recent) {
-      const pct = recent.total > 0 ? Math.round(recent.correct / recent.total * 100) : 0;
-      progHtml = `上次：${escapeHtml(recent.chapter)} · ${recent.correct}/${recent.total} (${pct}%)`;
-    }
-    card.innerHTML = `
-      <div class="tic">${tool.icon}</div>
-      <div class="tname">${tool.name}</div>
-      <div class="tdesc">${tool.desc}</div>
-      <div class="tprog">${progHtml}</div>
-    `;
-    grid.appendChild(card);
-  });
-}
-
 async function renderToolSections(user, history) {
   const wrap = document.getElementById('tool-sections');
   wrap.innerHTML = '';
@@ -1250,6 +1149,16 @@ async function renderToolSections(user, history) {
     });
     const doneCount = chaptersToShow.filter(c => byChapter[c]).length;
     const totalCount = chaptersToShow.length;
+    // 平均完成時間（只算有 durationSeconds 的紀錄）
+    const recsWithTime = recs.filter(r => typeof r.durationSeconds === 'number' && r.durationSeconds > 0);
+    let avgTimeHtml = '';
+    if (recsWithTime.length > 0) {
+      const avgSec = Math.round(recsWithTime.reduce((s, r) => s + r.durationSeconds, 0) / recsWithTime.length);
+      avgTimeHtml = `平均完成時間 <span class="ts-avg-time">${formatDuration(avgSec)}</span>（${recsWithTime.length} 次平均）`;
+    } else {
+      avgTimeHtml = '尚無時間紀錄';
+    }
+    const startHref = tool.url + '?user=' + encodeURIComponent(user);
     const section = document.createElement('div');
     section.className = 'tool-section ' + tool.cls;
     section.innerHTML = `
@@ -1258,18 +1167,20 @@ async function renderToolSections(user, history) {
           <h2>${tool.icon} ${tool.name}</h2>
           <span class="ts-en">${tool.nameEn}</span>
         </div>
-        <div class="ts-progress">
-          ${totalCount > 0 ? `已完成 <span class="done">${doneCount}</span> / ${totalCount} 章` : '尚無章節資料'}
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <div class="ts-progress">
+            ${totalCount > 0 ? `已完成 <span class="done">${doneCount}</span> / ${totalCount} 章` : '尚無章節資料'}
+          </div>
+          <a class="ts-start-btn" href="${startHref}">→ 開始考試</a>
         </div>
       </div>
       <div class="ts-body">
         <div class="chapter-grid-wrap"></div>
-        <div class="top-wrong-col"></div>
       </div>
+      <div class="ts-footer">${avgTimeHtml}</div>
     `;
     wrap.appendChild(section);
     renderChapterGrid(section.querySelector('.chapter-grid-wrap'), tool, chaptersToShow, byChapter, user);
-    renderTopWrongFor(section.querySelector('.top-wrong-col'), recs, tool);
   });
 }
 
@@ -1333,34 +1244,6 @@ function renderChapterGrid(container, tool, chapters, byChapter, user) {
       <span style="display:inline-flex; align-items:center; gap:5px;"><span style="display:inline-block; position:relative; width:14px; height:14px;"><span class="chapter-cell grade-a perfect" style="position:absolute; inset:0; width:14px; height:14px; max-width:14px; min-width:14px; flex:0 0 14px; aspect-ratio:auto;"></span></span> 100%</span>
     </div>
   `;
-  container.innerHTML = html;
-}
-
-function renderTopWrongFor(container, recs, tool) {
-  const counter = {};
-  recs.forEach(h => {
-    if (!Array.isArray(h.wrongList)) return;
-    h.wrongList.forEach(w => {
-      const word = (typeof w === 'string') ? w : (w.word || w.target || w.question || '');
-      if (!word) return;
-      counter[word] = (counter[word] || 0) + 1;
-    });
-  });
-  const list = Object.entries(counter)
-    .map(([word, count]) => ({ word, count }))
-    .filter(x => x.count >= 2)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 8);
-  let html = `<div class="col-label">最常錯的題目</div>`;
-  if (list.length === 0) {
-    html += `<div class="top-wrong-empty">沒有重複錯誤的題目 ✨</div>`;
-  } else {
-    html += `<ul class="top-wrong-list">`;
-    list.forEach(({ word, count }) => {
-      html += `<li><span class="word">${escapeHtml(word)}</span><span class="count">錯 ${count} 次</span></li>`;
-    });
-    html += `</ul>`;
-  }
   container.innerHTML = html;
 }
 
@@ -1535,6 +1418,14 @@ function formatTime(iso) {
   const hh = String(d.getHours()).padStart(2, '0');
   const mm = String(d.getMinutes()).padStart(2, '0');
   return `${hh}:${mm}`;
+}
+function formatDuration(seconds) {
+  if (typeof seconds !== 'number' || seconds <= 0) return '—';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m === 0) return `${s} 秒`;
+  if (s === 0) return `${m} 分`;
+  return `${m} 分 ${s} 秒`;
 }
 function formatDateTime(iso) {
   const d = new Date(iso);
