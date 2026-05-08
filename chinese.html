@@ -70,14 +70,14 @@
         return true;
       } catch (e) { console.warn('儲存紀錄失敗:', e); return false; }
     },
-    backHome() { location.href = HOME_URL; }
+    backHome() { location.href = HOME_URL + (user ? '?user=' + encodeURIComponent(user) : ''); }
   };
   if (!user) return;
   function injectBackButton() {
     if (document.getElementById('quiz-back-home-btn')) return;
     const btn = document.createElement('a');
     btn.id = 'quiz-back-home-btn';
-    btn.href = HOME_URL;
+    btn.href = HOME_URL + '?user=' + encodeURIComponent(user);
     btn.textContent = '← 學習中心';
     btn.title = '回到學習中心(' + user + ')';
     btn.style.cssText = "position:fixed;top:14px;left:14px;z-index:50;font-family:'Iowan Old Style',Palatino,serif;font-size:13px;letter-spacing:1px;color:#5a5048;background:rgba(244,237,224,0.85);padding:6px 12px;border:1px solid #c9bfa8;border-radius:2px;text-decoration:none;backdrop-filter:blur(4px);";
@@ -1509,6 +1509,18 @@ function renderChapterButtons() {
   
   select.disabled = false;
   if (startBtn) startBtn.disabled = false;
+
+  // 如果 URL 有指定章節（從學習中心點章節格子進來），自動選那個章節
+  try {
+    const urlChapter = new URLSearchParams(location.search).get('chapter') || '';
+    const m = urlChapter.match(/(\d+)/);
+    if (m) {
+      const targetNum = parseInt(m[1], 10);
+      if (chaptersMap[targetNum]) {
+        select.value = String(targetNum);
+      }
+    }
+  } catch (e) {}
 }
 
 // === 從使用者上傳的檔案讀取 ===

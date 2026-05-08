@@ -394,15 +394,32 @@
     transform: scale(1.1);
     z-index: 5;
   }
-  .chapter-cell.done {
+  /* === 已完成的章節：依正確率分四級顏色 === */
+  /* A: ≥ 95%  深綠 */
+  .chapter-cell.grade-a {
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
+  }
+  /* B: 90–95%  淺綠 */
+  .chapter-cell.grade-b {
     background: var(--green-bg);
     border-color: var(--green);
     color: var(--green);
   }
-  .chapter-cell.done.multi {
-    background: var(--green-light);
-    color: white;
+  /* C: 80–90%  黃 */
+  .chapter-cell.grade-c {
+    background: #f3e2a4;
+    border-color: var(--yellow);
+    color: #7a5a14;
   }
+  /* D: < 80%  紅 */
+  .chapter-cell.grade-d {
+    background: #f3c8c2;
+    border-color: var(--red);
+    color: #8a2820;
+  }
+  /* 滿分（100%）：在 A 之上加金色星角標 */
   .chapter-cell.done.perfect::after {
     content: '★';
     position: absolute;
@@ -1256,6 +1273,13 @@ async function renderToolSections(user, history) {
   });
 }
 
+function gradeForPct(pct) {
+  if (pct >= 95) return 'a';
+  if (pct >= 90) return 'b';
+  if (pct >= 80) return 'c';
+  return 'd';
+}
+
 function renderChapterGrid(container, tool, chapters, byChapter, user) {
   if (chapters.length === 0) {
     container.innerHTML = '<div class="grid-label">章節進度</div><div class="chapter-empty-hint">尚未讀到章節清單。完成過的章節會出現在歷史紀錄中。</div>';
@@ -1271,19 +1295,20 @@ function renderChapterGrid(container, tool, chapters, byChapter, user) {
       const num = i + idx + 1;
       const info = byChapter[ch];
       const done = !!info;
-      const multi = done && info.times > 1;
-      const perfect = done && info.perfect;
+      const perfect = done && info.lastPct === 100;
       const cls = ['chapter-cell'];
-      if (done) cls.push('done');
-      if (multi) cls.push('multi');
-      if (perfect) cls.push('perfect');
+      if (done) {
+        cls.push('done');
+        cls.push('grade-' + gradeForPct(info.lastPct));
+        if (perfect) cls.push('perfect');
+      }
       const href = tool.url + '?user=' + encodeURIComponent(user) + '&chapter=' + encodeURIComponent(ch);
       let tipHtml = `Chapter ${num}`;
       if (done) {
         const dateStr = formatShortDate(info.lastDate);
         tipHtml += `<br>${dateStr} · ${info.lastPct}%`;
         if (info.times > 1) tipHtml += ` · ${info.times} 次`;
-        if (info.perfect) tipHtml += ' ★';
+        if (perfect) tipHtml += ' ★';
       } else {
         tipHtml += '<br>尚未練習';
       }
@@ -1298,6 +1323,16 @@ function renderChapterGrid(container, tool, chapters, byChapter, user) {
     html += `</div>`;
   }
   html += `</div>`;
+  // 加上一個小說明
+  html += `
+    <div style="margin-top:14px; display:flex; flex-wrap:wrap; gap:14px; font-size:11px; color:var(--ink-soft); font-style:italic;">
+      <span style="display:inline-flex; align-items:center; gap:5px;"><span class="chapter-cell grade-a" style="position:relative; width:14px; height:14px; max-width:14px; min-width:14px; flex:0 0 14px; aspect-ratio:auto;"></span> ≥ 95%</span>
+      <span style="display:inline-flex; align-items:center; gap:5px;"><span class="chapter-cell grade-b" style="position:relative; width:14px; height:14px; max-width:14px; min-width:14px; flex:0 0 14px; aspect-ratio:auto;"></span> 90–95%</span>
+      <span style="display:inline-flex; align-items:center; gap:5px;"><span class="chapter-cell grade-c" style="position:relative; width:14px; height:14px; max-width:14px; min-width:14px; flex:0 0 14px; aspect-ratio:auto;"></span> 80–90%</span>
+      <span style="display:inline-flex; align-items:center; gap:5px;"><span class="chapter-cell grade-d" style="position:relative; width:14px; height:14px; max-width:14px; min-width:14px; flex:0 0 14px; aspect-ratio:auto;"></span> &lt; 80%</span>
+      <span style="display:inline-flex; align-items:center; gap:5px;"><span style="display:inline-block; position:relative; width:14px; height:14px;"><span class="chapter-cell grade-a perfect" style="position:absolute; inset:0; width:14px; height:14px; max-width:14px; min-width:14px; flex:0 0 14px; aspect-ratio:auto;"></span></span> 100%</span>
+    </div>
+  `;
   container.innerHTML = html;
 }
 
@@ -1514,10 +1549,28 @@ function formatDateTime(iso) {
 }
 
 /* ===========================================================
-   啟動：每次進來都從 Profile 選擇開始
+   啟動：依 URL 參數決定要進入哪個畫面
+   - 有 ?user=xxx（從工具「回到學習中心」回來的）→ 直接顯示該 Profile 的主畫面
+   - 沒有任何 hint → 顯示 Profile 選擇畫面（且把上次的 currentUser 清掉）
    =========================================================== */
-clearCurrentUser();
-renderProfileScreen();
+(function bootstrap() {
+  const urlParams = new URLSearchParams(location.search);
+  const urlUser = urlParams.get('user') || '';
+  if (urlUser && USERS.includes(urlUser)) {
+    // 從工具回來：直接進入該人的學習中心
+    setCurrentUser(urlUser);
+    // 把 ?user=... 從網址列拿掉，避免按重整時還停在這個 user
+    // （改用 history.replaceState 不會留下歷史紀錄）
+    if (history.replaceState) {
+      history.replaceState(null, '', location.pathname);
+    }
+    selectProfile(urlUser);
+  } else {
+    // 沒帶 user 參數：每次重新選
+    clearCurrentUser();
+    renderProfileScreen();
+  }
+})();
 </script>
 </body>
 </html>
