@@ -2,1884 +2,1021 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<title>中翻英拼字考試 Spelling Quiz</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script>
-// =====================================================
-// 學習中心整合
-// =====================================================
-(function() {
-  const params = new URLSearchParams(location.search);
-  const user = params.get('user') || '';
-  const HOME_URL = 'home.html';
-  function lsHistoryKey(u) { return 'studyhub.history.' + u; }
-  window.QuizHistory = {
-    user: user,
-    enabled: !!user,
-    save(record) {
-      if (!user) return false;
-      try {
-        const key = lsHistoryKey(user);
-        const arr = JSON.parse(localStorage.getItem(key) || '[]');
-        arr.push(record);
-        localStorage.setItem(key, JSON.stringify(arr));
-        return true;
-      } catch (e) { console.warn('儲存紀錄失敗:', e); return false; }
-    },
-    backHome() { location.href = HOME_URL; }
-  };
-  if (!user) return;
-  function injectBackButton() {
-    if (document.getElementById('quiz-back-home-btn')) return;
-    const btn = document.createElement('a');
-    btn.id = 'quiz-back-home-btn';
-    btn.href = HOME_URL;
-    btn.textContent = '← 學習中心';
-    btn.title = '回到學習中心（' + user + '）';
-    btn.style.cssText = "position:fixed;top:14px;left:14px;z-index:50;font-family:'Iowan Old Style',Palatino,serif;font-size:13px;letter-spacing:1px;color:#5a5048;background:rgba(244,237,224,0.85);padding:6px 12px;border:1px solid #c9bfa8;border-radius:2px;text-decoration:none;backdrop-filter:blur(4px);";
-    btn.addEventListener('mouseenter', () => { btn.style.background='#2a2620'; btn.style.color='#f4ede0'; btn.style.borderColor='#2a2620'; });
-    btn.addEventListener('mouseleave', () => { btn.style.background='rgba(244,237,224,0.85)'; btn.style.color='#5a5048'; btn.style.borderColor='#c9bfa8'; });
-    document.body.appendChild(btn);
-  }
-  if (document.body) injectBackButton();
-  else document.addEventListener('DOMContentLoaded', injectBackButton);
-})();
-</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>學習中心</title>
 <style>
   :root {
     --paper: #f4ede0;
     --paper-dark: #e8dcc4;
+    --paper-card: #faf5e8;
     --ink: #2a2620;
     --ink-soft: #5a5048;
     --rule: #c9bfa8;
+    --rule-light: #ddd0b0;
     --accent: #b8442e;
     --green: #4a7c3a;
     --green-bg: #7fb069;
     --red: #c9392c;
-    --red-bg: #e07856;
-    --yellow-bg: #f4d35e;
+    --yellow: #c8a84a;
+    --blue: #4a6f8a;
+    --purple: #8a5a8a;
     --gray: #9a9080;
   }
-  
+
+  /* ===== 修改這裡來設定使用者列表 ===== */
+  /* 寫在 CSS 裡面只是註解，下方 JS 區段才是真正的列表 */
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  
+
   html, body {
-    height: 100%;
+    min-height: 100%;
     background: var(--paper);
     color: var(--ink);
     font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
-    overflow: hidden;
-    transition: background 0.4s ease;
   }
-  
-  /* 答對 / 答錯：用整片邊框閃爍，而不是改變整個背景，避免遮住內容 */
-  body.correct-flash::before,
-  body.wrong-flash::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: 100;
-    border: 8px solid transparent;
-    box-sizing: border-box;
-    animation: flash-fade 0.6s ease-out forwards;
-  }
-  body.correct-flash::before { border-color: var(--green-bg); }
-  body.wrong-flash::before { border-color: var(--red); }
-  @keyframes flash-fade {
-    0% { opacity: 1; }
-    100% { opacity: 0; }
-  }
-  
-  /* ===== 螢幕切換 ===== */
-  .screen {
-    position: fixed;
-    inset: 0;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-  }
-  .screen.active { display: flex; }
-  
-  /* ===== 頂部紙質紋理 ===== */
+
+  /* 紙張紋理 */
   body::before {
     content: '';
     position: fixed;
     inset: 0;
     pointer-events: none;
-    background-image: 
+    background-image:
       repeating-linear-gradient(transparent 0, transparent 38px, rgba(180,160,120,0.08) 38px, rgba(180,160,120,0.08) 39px);
     z-index: 0;
   }
-  
-  /* ===== 設定畫面 ===== */
-  .setup {
-    max-width: 560px;
-    width: 100%;
-    z-index: 1;
-  }
-  .setup h1 {
-    font-family: 'Didot', 'Bodoni 72', 'Hoefler Text', serif;
-    font-size: 56px;
-    font-weight: 400;
-    letter-spacing: -1px;
-    margin-bottom: 8px;
-    text-align: center;
-  }
-  .setup .subtitle {
-    text-align: center;
-    color: var(--ink-soft);
-    font-style: italic;
-    margin-bottom: 48px;
-    letter-spacing: 1px;
-  }
-  
-  .field { margin-bottom: 32px; }
-  .field label {
-    display: block;
-    font-size: 14px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: var(--ink-soft);
-    margin-bottom: 12px;
-  }
-  
-  .file-drop {
-    border: 2px dashed var(--rule);
-    border-radius: 4px;
-    padding: 32px;
-    text-align: center;
-    background: rgba(255,255,255,0.3);
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .file-drop:hover, .file-drop.dragover {
-    border-color: var(--accent);
-    background: rgba(255,255,255,0.5);
-  }
-  .file-drop input { display: none; }
-  .file-drop .file-icon { font-size: 36px; margin-bottom: 8px; }
-  .file-drop .file-name {
-    margin-top: 12px;
-    color: var(--accent);
-    font-weight: bold;
-  }
-  
-  select, button {
-    font-family: inherit;
-    font-size: 18px;
-    width: 100%;
-    padding: 14px 16px;
-    border: 1.5px solid var(--ink);
-    background: var(--paper);
-    color: var(--ink);
-    border-radius: 2px;
-    cursor: pointer;
-  }
-  select:disabled { opacity: 0.4; cursor: not-allowed; }
-  
-  .start-btn {
-    background: var(--ink);
-    color: var(--paper);
-    font-size: 20px;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    padding: 18px;
-    margin-top: 16px;
-    transition: all 0.2s;
-  }
-  .start-btn:hover:not(:disabled) {
-    background: var(--accent);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 0 var(--ink);
-  }
-  .start-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-  
-  .info-text {
-    margin-top: 16px;
-    color: var(--ink-soft);
-    font-size: 14px;
-    text-align: center;
-  }
-  
-  /* ===== 考試畫面 ===== */
-  .quiz {
-    width: 100%;
-    height: 100%;
-    z-index: 1;
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 36px 28px 64px;
     position: relative;
+    z-index: 1;
   }
-  
-  .counter {
-    position: absolute;
-    top: 32px;
-    right: 40px;
-    font-family: 'Courier New', monospace;
-    font-size: 24px;
-    letter-spacing: 2px;
-    font-weight: bold;
+
+  /* ====== 頂端 ====== */
+  .topbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 18px;
+    margin-bottom: 30px;
   }
-  .counter .c-correct { color: var(--green); }
-  .counter .c-wrong { color: var(--red); }
-  .counter .c-sep { color: var(--ink-soft); margin: 0 4px; }
-  .counter .c-total { color: var(--ink); }
-  
-  .round-tag {
-    position: absolute;
-    top: 32px;
-    left: 40px;
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-    padding: 6px 12px;
-    border: 1px solid var(--rule);
-    border-radius: 2px;
-  }
-  .round-tag.review {
-    color: var(--accent);
-    border-color: var(--accent);
-  }
-  
-  .word-display {
-    position: absolute;
-    top: 26%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    width: 90%;
-    max-width: 900px;
-  }
-  .word-display .definition {
-    font-family: 'Microsoft JhengHei', 'PingFang TC', 'Noto Serif TC', serif;
-    font-size: 56px;
+  .brand h1 {
+    font-family: 'Didot', 'Bodoni 72', 'Hoefler Text', serif;
+    font-size: 42px;
     font-weight: 400;
-    letter-spacing: 2px;
-    line-height: 1.2;
-    color: var(--ink);
-  }
-  .word-display .pos {
-    margin-top: 18px;
-    font-family: 'Iowan Old Style', Palatino, serif;
-    font-style: italic;
-    color: var(--ink-soft);
-    font-size: 18px;
-    letter-spacing: 1px;
-  }
-  /* 一般模式：首尾字母+字數提示遮罩，例如 n _ _ _ _ _ s （12 字母） */
-  .word-display .mask-hint {
-    margin-top: 28px;
-    font-family: 'Courier New', monospace;
-    font-size: 32px;
-    letter-spacing: 8px;
-    color: var(--ink-soft);
-    height: 44px;
+    letter-spacing: -0.5px;
     line-height: 1;
   }
-  .word-display .mask-hint .mask-count {
-    font-family: 'Iowan Old Style', Palatino, serif;
+  .brand .subtitle {
+    margin-top: 6px;
+    font-style: italic;
+    color: var(--ink-soft);
     font-size: 14px;
-    letter-spacing: 2px;
-    margin-left: 18px;
-    color: var(--ink-soft);
-    text-transform: uppercase;
-    opacity: 0.7;
-    vertical-align: middle;
-  }
-  
-  /* 答案輸入區 */
-  .answer-area {
-    position: absolute;
-    bottom: 110px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(640px, 90%);
-    text-align: center;
-  }
-  .answer-input {
-    font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, serif;
-    font-size: 36px;
-    width: 100%;
-    padding: 16px 20px;
-    border: 0;
-    border-bottom: 2px solid var(--ink);
-    background: transparent;
-    color: var(--ink);
-    text-align: center;
-    letter-spacing: 2px;
-    outline: none;
-    transition: border-color 0.15s, color 0.15s;
-  }
-  .answer-input:focus {
-    border-bottom-color: var(--accent);
-  }
-  .answer-input.correct {
-    color: var(--green-bg);
-    border-bottom-color: var(--green-bg);
-    border-bottom-width: 3px;
-  }
-  .answer-input.wrong {
-    color: var(--red);
-    border-bottom-color: var(--red);
-    border-bottom-width: 3px;
-    text-decoration: line-through;
-    text-decoration-thickness: 2px;
-  }
-  
-  /* 正確答案（顯示在題目下方） */
-  .correct-answers {
-    margin-top: 28px;
-    font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, serif;
-    font-size: 26px;
     letter-spacing: 1px;
-    min-height: 36px;
-    visibility: hidden;
   }
-  .correct-answers.show { visibility: visible; }
-  .correct-answers .label {
-    font-style: italic;
-    font-size: 14px;
-    color: var(--ink-soft);
-    margin-right: 12px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-  }
-  .correct-answers .ans {
-    color: var(--ink);
-    background: #b8e0a0;
-    padding: 3px 12px;
-    border-radius: 3px;
-    font-weight: bold;
-    margin: 0 3px;
-    border: 1px solid var(--green);
-  }
-  .correct-answers .ans + .ans {
-    margin-left: 6px;
-  }
-  
-  /* 輸入框 + 旁邊「實際意思」 */
-  .answer-row {
-    display: flex;
-    align-items: baseline;
-    gap: 16px;
-    justify-content: center;
-  }
-  .answer-row .answer-input {
-    flex: 0 1 auto;
-    width: auto;
-    min-width: 360px;
-    max-width: 100%;
-  }
-  .user-answer-meaning {
-    font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
-    font-size: 18px;
-    color: var(--ink-soft);
-    letter-spacing: 1px;
-    white-space: nowrap;
-    visibility: hidden;
-    text-align: left;
-  }
-  .user-answer-meaning.show { visibility: visible; }
-  .user-answer-meaning .verb {
-    font-style: italic;
-    margin-right: 6px;
-    color: var(--ink-soft);
-  }
-  .user-answer-meaning .meaning {
-    color: var(--red);
-    font-weight: bold;
-  }
-  
-  .press-enter-hint {
-    margin-top: 22px;
-    font-size: 12px;
-    letter-spacing: 3px;
-    color: var(--ink-soft);
-    text-transform: uppercase;
-    visibility: hidden;
-    font-style: italic;
-    text-align: center;
-    opacity: 0.7;
-  }
-  .press-enter-hint.show { visibility: visible; }
-  
-  /* 模式切換按鈕（右上角） */
-  .mode-panel {
-    position: fixed;
-    top: 8px;
-    right: 8px;
-    z-index: 200;
+  .user-panel {
     display: flex;
     flex-direction: column;
-    gap: 4px;
     align-items: flex-end;
+    gap: 6px;
   }
-  .mode-btn {
-    background: transparent;
-    border: 1px solid var(--rule);
-    border-radius: 2px;
-    padding: 4px 10px;
-    cursor: pointer;
-    font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
-    font-size: 11px;
-    letter-spacing: 1px;
-    color: var(--ink-soft);
-    opacity: 0.5;
-    transition: opacity 0.2s, background 0.15s;
-    white-space: nowrap;
-  }
-  .mode-btn:hover { opacity: 1; }
-  .mode-btn.active {
-    background: var(--accent);
-    color: var(--paper);
-    border-color: var(--accent);
-    opacity: 1;
-  }
-  
-  .hint {
-    position: absolute;
-    bottom: 16px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 12px;
-    letter-spacing: 2px;
-    color: var(--ink-soft);
-    text-transform: uppercase;
-  }
-  .hint kbd {
-    font-family: 'Courier New', monospace;
-    border: 1px solid var(--rule);
-    padding: 2px 6px;
-    border-radius: 2px;
-    background: rgba(255,255,255,0.4);
-    margin: 0 2px;
-  }
-  
-  /* ===== 結果畫面 ===== */
-  .result {
-    width: min(800px, 92%);
-    max-height: 90vh;
-    overflow-y: auto;
-    padding: 48px 56px;
-    background: rgba(255,255,255,0.3);
-    border: 1px solid var(--rule);
-    z-index: 1;
-  }
-  .result h2 {
-    font-family: 'Didot', 'Bodoni 72', serif;
-    font-size: 24px;
-    font-weight: 400;
-    text-align: center;
-    margin-bottom: 24px;
-    letter-spacing: 6px;
-    text-transform: uppercase;
-    color: var(--ink-soft);
-  }
-  .result .fart-count {
-    font-family: 'Marker Felt', 'Comic Sans MS', 'Chalkboard', cursive;
-    text-align: center;
-    font-size: 56px;
-    line-height: 1.15;
-    margin-bottom: 36px;
-    color: var(--accent);
-    font-weight: bold;
-    transform: rotate(-2deg);
-    text-shadow: 3px 3px 0 var(--paper-dark);
-  }
-  .result .fart-count.zero {
-    color: var(--green);
-    transform: rotate(-1deg);
-  }
-  .result .fart-emoji {
-    display: inline-block;
-    font-size: 64px;
-    margin-right: 8px;
-    vertical-align: middle;
-    transform: rotate(-15deg) translateY(-4px);
-  }
-  .result .score {
-    text-align: center;
-    font-family: 'Courier New', monospace;
-    font-size: 48px;
-    font-weight: bold;
-    margin-bottom: 8px;
-    letter-spacing: 4px;
-  }
-  .result .score .s-correct { color: var(--green); }
-  .result .score .s-wrong { color: var(--red); }
-  .result .score .s-total { color: var(--ink); }
-  .result .score .s-sep { color: var(--ink-soft); margin: 0 6px; font-weight: normal; }
-  .result .score-percent {
-    text-align: center;
-    color: var(--ink-soft);
-    font-size: 18px;
-    margin-bottom: 40px;
-    letter-spacing: 2px;
-  }
-  
-  .result .section-title {
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    font-size: 12px;
-    color: var(--ink-soft);
-    border-bottom: 1px solid var(--rule);
-    padding-bottom: 8px;
-    margin-bottom: 16px;
-  }
-  
-  .wrong-list { list-style: none; }
-  .wrong-list li {
-    padding: 12px 0;
-    border-bottom: 1px dashed var(--rule);
-    font-size: 17px;
-    line-height: 1.6;
-  }
-  .wrong-list .w-word {
+  .user-name {
     font-family: 'Didot', serif;
     font-size: 22px;
-    font-weight: bold;
-    margin-right: 16px;
+    color: var(--accent);
+    letter-spacing: 1px;
   }
-  .wrong-list .w-correct {
-    color: var(--green);
-    margin-left: 8px;
-  }
-  .wrong-list .w-x {
-    color: var(--red);
-    font-weight: bold;
-    margin: 0 8px;
-  }
-  .wrong-list .w-picked {
-    color: var(--red);
-    text-decoration: line-through;
-  }
-  .perfect {
-    text-align: center;
+  .user-stats-mini {
+    font-size: 13px;
+    color: var(--ink-soft);
     font-style: italic;
-    color: var(--green);
-    padding: 24px;
-    font-size: 20px;
   }
-  
-  .result-actions {
-    display: flex;
-    gap: 12px;
-    margin-top: 40px;
-  }
-  .result-actions button { flex: 1; }
-  
-  /* ===== 手動瀏覽畫面 ===== */
-  #browse-screen {
-    padding: 40px 20px;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-  /* 點擊區（左/右半邊）— 滿版、透明、置於底層 */
-  .browse-tap-zone {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    width: 50%;
-    z-index: 1;
+  .switch-user-btn {
+    background: transparent;
+    color: var(--ink-soft);
+    border: 1px solid var(--rule);
+    padding: 6px 14px;
+    border-radius: 2px;
     cursor: pointer;
-    -webkit-tap-highlight-color: rgba(184, 68, 46, 0.08);
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-top: 4px;
   }
-  .browse-tap-prev { left: 0; }
-  .browse-tap-next { right: 0; }
-  /* 桌機：點擊提示用箭頭符號淡淡浮現 */
-  .browse-tap-zone::before {
+  .switch-user-btn:hover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  /* ====== 工具卡片 ====== */
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-bottom: 40px;
+  }
+  .tool-card {
+    border: 1.5px solid var(--ink);
+    background: var(--paper-card);
+    padding: 26px 22px;
+    cursor: pointer;
+    text-decoration: none;
+    color: var(--ink);
+    transition: all 0.18s ease;
+    display: flex;
+    flex-direction: column;
+    min-height: 220px;
+    position: relative;
+    overflow: hidden;
+  }
+  .tool-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 0 var(--ink);
+  }
+  .tool-card .tool-icon {
+    font-size: 38px;
+    margin-bottom: 12px;
+    line-height: 1;
+  }
+  .tool-card .tool-name {
+    font-family: 'Didot', serif;
+    font-size: 24px;
+    font-weight: 400;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+  }
+  .tool-card .tool-name-en {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-bottom: 18px;
+  }
+  .tool-card .tool-recent {
+    margin-top: auto;
+    font-size: 13px;
+    color: var(--ink-soft);
+    border-top: 1px dashed var(--rule);
+    padding-top: 12px;
+  }
+  .tool-card .tool-recent strong {
+    font-family: 'Didot', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--ink);
+    letter-spacing: 1px;
+  }
+  .tool-card .tool-recent .recent-meta {
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 2px;
+  }
+  /* 各工具的 accent 色彩條 */
+  .tool-card.spelling::before {
     content: '';
     position: absolute;
-    top: 50%;
-    width: 48px;
-    height: 48px;
-    transform: translateY(-50%);
-    opacity: 0;
-    transition: opacity 0.2s;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 32px 32px;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--accent);
   }
-  .browse-tap-prev::before {
-    left: 24px;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a5048' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='15 18 9 12 15 6'/></svg>");
+  .tool-card.vocab::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--blue);
   }
-  .browse-tap-next::before {
-    right: 24px;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a5048' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='9 18 15 12 9 6'/></svg>");
+  .tool-card.chinese::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--purple);
   }
-  .browse-tap-zone:hover::before { opacity: 0.5; }
-  
-  /* 卡片本體 */
-  .browse-card {
-    position: relative;
-    z-index: 2;
-    width: 100%;
-    max-width: 720px;
-    text-align: center;
-    pointer-events: none;  /* 讓卡片本身不擋住背景點擊區，但子元素可單獨開啟 */
+
+  /* ====== 統計區段 ====== */
+  .section {
+    margin-bottom: 40px;
   }
-  .browse-card > * { pointer-events: auto; }
-  .browse-counter {
-    font-family: 'Didot', 'Bodoni 72', serif;
-    font-size: 18px;
-    color: var(--ink-soft);
-    letter-spacing: 4px;
-    margin-bottom: 28px;
-    pointer-events: none;
-  }
-  .browse-content {
-    border: 1px solid var(--rule);
-    background: rgba(255, 255, 255, 0.35);
-    padding: 56px 32px 64px;
-    margin-bottom: 28px;
-    pointer-events: none;
-  }
-  .browse-def {
-    font-family: 'Microsoft JhengHei', 'PingFang TC', 'Noto Serif TC', serif;
-    font-size: 48px;
+  .section h2 {
+    font-family: 'Didot', serif;
+    font-size: 22px;
     font-weight: 400;
     letter-spacing: 2px;
-    line-height: 1.25;
-    color: var(--ink);
-    word-break: break-word;
-  }
-  .browse-pos {
-    margin-top: 12px;
-    font-family: 'Iowan Old Style', Palatino, serif;
-    font-style: italic;
-    color: var(--ink-soft);
-    font-size: 17px;
-    letter-spacing: 1px;
-    min-height: 22px;
-  }
-  .browse-divider {
-    width: 80px;
-    height: 1px;
-    background: var(--rule);
-    margin: 32px auto;
-  }
-  .browse-word {
-    font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, serif;
-    font-size: 56px;
-    font-weight: 400;
-    letter-spacing: 3px;
-    color: var(--accent);
-    word-break: break-word;
-  }
-  .browse-hint {
-    font-family: 'Iowan Old Style', Palatino, serif;
-    font-style: italic;
-    color: var(--ink-soft);
-    font-size: 14px;
-    letter-spacing: 1px;
-    margin-bottom: 20px;
-    pointer-events: none;
-  }
-  .browse-hint-touch { display: none; }
-  /* iPad / 平板觸控：顯示觸控提示，桌機提示隱藏 */
-  @media (hover: none) and (pointer: coarse) {
-    .browse-hint-desktop { display: none; }
-    .browse-hint-touch { display: inline; }
-    .browse-tap-zone:hover::before { opacity: 0; }
-  }
-  .browse-actions {
-    display: flex;
-    justify-content: center;
-  }
-  .browse-actions button {
-    padding: 12px 32px;
-    font-size: 14px;
-    letter-spacing: 2px;
-  }
-  /* 翻頁淡入動畫 */
-  .browse-content.flip {
-    animation: browse-flip 0.18s ease-out;
-  }
-  @keyframes browse-flip {
-    0% { opacity: 0.3; transform: translateX(0); }
-    100% { opacity: 1; transform: translateX(0); }
-  }
-  
-  .error-msg {
-    color: var(--red);
-    background: rgba(201,57,44,0.1);
-    border: 1px solid var(--red);
-    padding: 12px;
-    margin-top: 16px;
-    border-radius: 2px;
-    font-size: 14px;
-  }
-  
-  .saved-file {
-    background: rgba(255,255,255,0.5);
-    border: 1px solid var(--rule);
-    border-radius: 2px;
-    padding: 14px 16px;
-    margin-bottom: 12px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 8px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+  }
+  .section h2 .range-tabs {
+    display: flex;
+    gap: 4px;
+  }
+  .section h2 .range-tabs button {
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink-soft);
+    padding: 4px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .section h2 .range-tabs button.active {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  /* 統計卡片 */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 18px;
+  }
+  .stat-card {
+    border: 1px solid var(--rule);
+    background: var(--paper-card);
+    padding: 20px 22px;
+  }
+  .stat-card .stat-title {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+  }
+
+  /* 練習熱度長條圖 */
+  .heatmap {
+    display: flex;
+    align-items: flex-end;
+    height: 80px;
+    gap: 2px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--rule-light);
+  }
+  .heatmap .bar {
+    flex: 1;
+    min-width: 0;
+    background: var(--rule-light);
+    border-radius: 1px 1px 0 0;
+    position: relative;
+    transition: background 0.15s;
+  }
+  .heatmap .bar.has-data {
+    background: var(--accent);
+  }
+  .heatmap .bar:hover {
+    background: var(--ink);
+  }
+  .heatmap .bar:hover .bar-tip {
+    display: block;
+  }
+  .heatmap .bar-tip {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 2px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    z-index: 10;
+    font-family: 'Iowan Old Style', serif;
+  }
+  .heatmap-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--ink-soft);
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  /* 平均正確率 bar */
+  .accuracy-list { display: flex; flex-direction: column; gap: 12px; }
+  .accuracy-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .accuracy-row .acc-label {
+    width: 60px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  .accuracy-row .acc-bar-wrap {
+    flex: 1;
+    height: 14px;
+    background: var(--rule-light);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .accuracy-row .acc-bar {
+    height: 100%;
+    background: var(--green);
+    transition: width 0.3s ease;
+  }
+  .accuracy-row.spelling .acc-bar { background: var(--accent); }
+  .accuracy-row.vocab .acc-bar    { background: var(--blue); }
+  .accuracy-row.chinese .acc-bar  { background: var(--purple); }
+  .accuracy-row .acc-pct {
+    width: 50px;
+    text-align: right;
+    font-family: 'Didot', serif;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .accuracy-row .acc-empty {
+    color: var(--gray);
+    font-style: italic;
+    font-size: 12px;
+  }
+
+  /* 最常錯 */
+  .top-wrong-list { font-size: 14px; }
+  .top-wrong-list li {
+    list-style: none;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--rule-light);
+  }
+  .top-wrong-list li:last-child { border-bottom: 0; }
+  .top-wrong-list .word {
+    font-family: 'Iowan Old Style', serif;
+    font-size: 16px;
+  }
+  .top-wrong-list .count {
+    color: var(--accent);
+    font-style: italic;
+    font-size: 13px;
+  }
+  .empty-hint {
+    color: var(--gray);
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
     font-size: 14px;
   }
-  .saved-file .saved-info {
-    flex: 1;
-    color: var(--ink-soft);
+
+  /* ====== 歷史紀錄 ====== */
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--paper-card);
+    border: 1px solid var(--rule);
   }
-  .saved-file .saved-info strong {
-    color: var(--accent);
+  .history-table th, .history-table td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--rule-light);
+    font-size: 14px;
+  }
+  .history-table th {
+    background: var(--paper-dark);
+    font-style: italic;
+    color: var(--ink-soft);
+    font-weight: 400;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .history-table tr:last-child td { border-bottom: 0; }
+  .history-table tr:hover td { background: rgba(255,255,255,0.4); }
+  .history-table .h-date {
+    font-family: 'Iowan Old Style', serif;
+    color: var(--ink-soft);
+    white-space: nowrap;
+  }
+  .history-table .h-tool {
+    font-family: 'Didot', serif;
+    letter-spacing: 1px;
+  }
+  .history-table .h-score {
+    font-family: 'Didot', serif;
+    font-size: 16px;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .history-table .h-pct {
+    text-align: right;
+    color: var(--ink-soft);
+    font-style: italic;
+    white-space: nowrap;
+  }
+  .history-table .h-pct.high { color: var(--green); }
+  .history-table .h-pct.low { color: var(--accent); }
+  .history-table .h-perfect {
+    color: var(--green);
     font-weight: bold;
   }
-  .saved-file .saved-info .meta {
-    font-size: 12px;
-    color: var(--ink-soft);
-    margin-top: 2px;
+
+  /* 標籤 */
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 2px;
+    letter-spacing: 1px;
   }
-  .saved-file button {
-    width: auto;
-    padding: 6px 12px;
-    font-size: 13px;
+  .tag.spelling { background: rgba(184, 68, 46, 0.12); color: var(--accent); }
+  .tag.vocab    { background: rgba(74, 111, 138, 0.12); color: var(--blue); }
+  .tag.chinese  { background: rgba(138, 90, 138, 0.12); color: var(--purple); }
+
+  .show-more-btn {
+    display: block;
+    margin: 20px auto 0;
     background: transparent;
-    border: 1px solid var(--ink-soft);
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    padding: 8px 24px;
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .show-more-btn:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  /* 第一次來：使用者選擇對話框 */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(42, 38, 32, 0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    padding: 36px 32px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+  }
+  .modal h2 {
+    font-family: 'Didot', serif;
+    font-size: 28px;
+    font-weight: 400;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .modal .modal-sub {
     color: var(--ink-soft);
+    font-style: italic;
+    font-size: 14px;
+    margin-bottom: 24px;
   }
-  .saved-file button:hover {
-    border-color: var(--accent);
-    color: var(--accent);
+  .modal .user-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
   }
-  
-  @media (max-width: 600px) {
-    .word-display .word { font-size: 56px; }
-    .options { grid-template-columns: 1fr; gap: 8px; bottom: 32px; }
-    .option { padding: 14px; font-size: 17px; min-height: 52px; }
-    .counter { font-size: 18px; top: 16px; right: 16px; }
-    .round-tag { top: 16px; left: 16px; font-size: 11px; }
-    .result { padding: 32px 24px; }
-    .result h2 { font-size: 36px; }
-    /* 瀏覽畫面 — 縮小字級 */
-    .browse-content { padding: 36px 20px 44px; }
-    .browse-def { font-size: 32px; letter-spacing: 1px; }
-    .browse-word { font-size: 38px; letter-spacing: 2px; }
-    .browse-pos { font-size: 15px; }
-    .browse-counter { font-size: 14px; margin-bottom: 18px; }
-    .browse-divider { margin: 24px auto; }
+  .modal .user-list button {
+    background: var(--paper-card);
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+    padding: 14px;
+    font-family: inherit;
+    font-size: 18px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.15s;
+  }
+  .modal .user-list button:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  /* 響應式 */
+  @media (max-width: 760px) {
+    .container { padding: 22px 16px 48px; }
+    .brand h1 { font-size: 32px; }
+    .topbar { flex-direction: column; align-items: flex-start; }
+    .user-panel { align-items: flex-start; }
+    .tools-grid { grid-template-columns: 1fr; }
+    .tool-card { min-height: auto; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .history-table { font-size: 12px; }
+    .history-table th, .history-table td { padding: 8px 10px; }
+    .history-table .h-tool .full { display: none; }
   }
 </style>
 </head>
 <body>
 
-<!-- 模式切換按鈕（右上角） -->
-<div class="mode-panel" id="mode-panel" style="display:none">
-  <button class="mode-btn" id="mode-easy">簡單模式</button>
-  <button class="mode-btn active" id="mode-normal">一般模式</button>
+<!-- 第一次來的選擇使用者 modal -->
+<div class="modal-overlay" id="user-modal">
+  <div class="modal">
+    <h2>歡迎</h2>
+    <p class="modal-sub">— 請選擇使用者 —</p>
+    <div class="user-list" id="user-list-buttons"></div>
+  </div>
 </div>
 
-<!-- ============ 設定畫面 ============ -->
-<div class="screen active" id="setup-screen">
-  <div class="setup">
-    <h1>Spelling Quiz</h1>
-    <p class="subtitle">— 中翻英拼字 —</p>
-    
-    <!-- 隱藏的上傳區（保留 DOM 與相關 JS 邏輯，但不顯示） -->
-    <div class="field" style="display:none">
-      <label>上傳 Excel 檔</label>
-      <div id="saved-file-area"></div>
-      <label class="file-drop" id="file-drop">
-        <div class="file-icon">📖</div>
-        <div>點此選擇檔案，或拖曳檔案到此</div>
-        <div class="file-name" id="file-name"></div>
-        <input type="file" id="file-input" accept=".xlsx,.xls">
-      </label>
-      <div id="error-msg"></div>
+<div class="container" id="main-container" style="display:none">
+
+  <!-- 頂部 -->
+  <div class="topbar">
+    <div class="brand">
+      <h1>學習中心</h1>
+      <div class="subtitle">— Study Hub —</div>
     </div>
-    
-    <div class="field">
-      <label>選擇章節</label>
-      <select id="chapter-select" disabled>
-        <option>字庫載入中…</option>
-      </select>
+    <div class="user-panel">
+      <div class="user-name" id="topbar-user-name">—</div>
+      <div class="user-stats-mini" id="topbar-user-stats">尚無紀錄</div>
+      <button class="switch-user-btn" id="switch-user-btn">切換使用者</button>
     </div>
-    
-    <div class="field">
-      <label>模式</label>
-      <div style="display:flex; gap:8px;">
-        <button id="setup-mode-browse" class="setup-mode-btn" style="flex:1; padding:14px 8px; border:1.5px solid var(--ink); background:var(--paper); color:var(--ink); cursor:pointer; font-family:inherit; font-size:15px;">手動<br><span style="font-size:11px; opacity:0.7; font-style:italic;">同時看中英 · 翻頁瀏覽</span></button>
-        <button id="setup-mode-easy" class="setup-mode-btn active" style="flex:1; padding:14px 8px; border:1.5px solid var(--ink); background:var(--ink); color:var(--paper); cursor:pointer; font-family:inherit; font-size:15px;">簡單<br><span style="font-size:11px; opacity:0.7; font-style:italic;">提示首尾字母 + 字數</span></button>
-        <button id="setup-mode-normal" class="setup-mode-btn" style="flex:1; padding:14px 8px; border:1.5px solid var(--ink); background:var(--paper); color:var(--ink); cursor:pointer; font-family:inherit; font-size:15px;">一般<br><span style="font-size:11px; opacity:0.7; font-style:italic;">中文意思 → 英文同義字</span></button>
+  </div>
+
+  <!-- 三個工具卡片 -->
+  <div class="tools-grid" id="tools-grid"></div>
+
+  <!-- 統計區 -->
+  <div class="section">
+    <h2>
+      <span>學習統計</span>
+      <span class="range-tabs">
+        <button data-range="7">近 7 天</button>
+        <button data-range="30" class="active">近 30 天</button>
+        <button data-range="all">全部</button>
+      </span>
+    </h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-title">每日練習次數</div>
+        <div class="heatmap" id="heatmap"></div>
+        <div class="heatmap-axis" id="heatmap-axis"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-title">各工具平均正確率</div>
+        <div class="accuracy-list" id="accuracy-list"></div>
       </div>
     </div>
-    
-    <button class="start-btn" id="start-btn" disabled>開 始</button>
-    <p class="info-text" id="info-text">輸入英文 · Enter 確認</p>
-    <div id="error-msg-visible" style="color: var(--accent); font-size: 14px; margin-top: 12px; text-align: center;"></div>
-  </div>
-</div>
-
-<!-- ============ 考試畫面 ============ -->
-<div class="screen" id="quiz-screen">
-  <div class="quiz">
-    <div class="round-tag" id="round-tag">FIRST ROUND</div>
-    <div class="counter">
-      <span class="c-correct" id="c-correct">00</span><span class="c-sep">/</span><span class="c-wrong" id="c-wrong">00</span><span class="c-sep">/</span><span class="c-total" id="c-total">00</span>
-    </div>
-    <div class="word-display">
-      <div class="definition" id="definition"></div>
-      <div class="pos" id="pos"></div>
-      <div class="mask-hint" id="mask-hint"></div>
-      <div class="correct-answers" id="correct-answers"></div>
-    </div>
-    <div class="answer-area">
-      <div class="answer-row">
-        <input type="text" class="answer-input" id="answer-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-        <div class="user-answer-meaning" id="user-answer-meaning"></div>
-      </div>
-      <div class="press-enter-hint" id="press-enter-hint"></div>
-    </div>
-    <div class="hint" id="hint">
-      輸入英文 &nbsp;·&nbsp; <kbd>Enter</kbd> 確認
+    <div class="stat-card" style="margin-top:18px">
+      <div class="stat-title">最常錯的題目</div>
+      <ul class="top-wrong-list" id="top-wrong-list"></ul>
     </div>
   </div>
-</div>
 
-<!-- ============ 結果畫面 ============ -->
-<div class="screen" id="result-screen">
-  <div class="result">
-    <h2>考試結束</h2>
-    <div class="fart-count" id="fart-count"></div>
-    <div class="score">
-      <span class="s-correct" id="r-correct">00</span><span class="s-sep">/</span><span class="s-wrong" id="r-wrong">00</span><span class="s-sep">/</span><span class="s-total" id="r-total">00</span>
-    </div>
-    <div class="score-percent" id="r-percent"></div>
-    
-    <div class="section-title">錯題回顧</div>
-    <div id="wrong-container"></div>
-    
-    <div class="result-actions">
-      <button id="retry-btn">同章節再來一次</button>
-      <button id="back-btn">回到主選單</button>
-    </div>
+  <!-- 歷史紀錄 -->
+  <div class="section">
+    <h2><span>歷史紀錄</span></h2>
+    <table class="history-table" id="history-table">
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>工具</th>
+          <th>章節</th>
+          <th style="text-align:right">分數</th>
+          <th style="text-align:right">正確率</th>
+        </tr>
+      </thead>
+      <tbody id="history-tbody"></tbody>
+    </table>
+    <button class="show-more-btn" id="show-more-btn" style="display:none">顯示全部</button>
   </div>
-</div>
 
-<!-- ============ 手動瀏覽畫面 ============ -->
-<div class="screen" id="browse-screen">
-  <!-- 左右點擊區（手機/iPad 友善） -->
-  <div class="browse-tap-zone browse-tap-prev" id="browse-tap-prev" aria-label="上一張"></div>
-  <div class="browse-tap-zone browse-tap-next" id="browse-tap-next" aria-label="下一張"></div>
-
-  <div class="browse-card">
-    <div class="browse-counter" id="browse-counter">1 / 1</div>
-    <div class="browse-content">
-      <div class="browse-def" id="browse-def"></div>
-      <div class="browse-pos" id="browse-pos"></div>
-      <div class="browse-divider"></div>
-      <div class="browse-word" id="browse-word"></div>
-    </div>
-    <div class="browse-hint">
-      <span class="browse-hint-desktop">← 上一張 &nbsp;·&nbsp; 下一張 →</span>
-      <span class="browse-hint-touch">點左半邊 ← &nbsp;·&nbsp; 點右半邊 →</span>
-    </div>
-    <div class="browse-actions">
-      <button id="browse-back-btn">回到主選單</button>
-    </div>
-  </div>
 </div>
 
 <script>
 'use strict';
 
-// =============== 音效（使用 Web Audio API 即時合成）===============
-let audioCtx;
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
+/* =====================================================
+   ⚙️ 設定區：在這裡修改誰可以使用這個學習中心
+   ===================================================== */
+const USERS = ['小明', '小華'];
+
+/* =====================================================
+   工具設定
+   ===================================================== */
+const TOOLS = {
+  spelling: {
+    name: '中翻英拼字',
+    nameEn: 'Spelling Quiz',
+    icon: '✏️',
+    url: 'index.html',
+    cls: 'spelling'
+  },
+  vocab: {
+    name: '單字測驗',
+    nameEn: 'Vocabulary Quiz',
+    icon: '📖',
+    url: 'EnglishDefinition.html',
+    cls: 'vocab'
+  },
+  chinese: {
+    name: '中文發音',
+    nameEn: '中文發音測驗',
+    icon: '🗣️',
+    url: 'chinese.html',
+    cls: 'chinese'
+  }
+};
+
+/* =====================================================
+   localStorage 介面
+   ===================================================== */
+const LS_CURRENT_USER = 'studyhub.currentUser';
+function lsHistoryKey(user) { return 'studyhub.history.' + user; }
+
+function getCurrentUser() {
+  return localStorage.getItem(LS_CURRENT_USER) || '';
+}
+function setCurrentUser(name) {
+  localStorage.setItem(LS_CURRENT_USER, name);
+}
+function loadHistory(user) {
+  try {
+    return JSON.parse(localStorage.getItem(lsHistoryKey(user)) || '[]');
+  } catch (e) {
+    return [];
+  }
 }
 
-function playCorrectSound() {
-  // 三音上行琶音 — 雀躍
-  const ctx = getAudioCtx();
-  const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
-  notes.forEach((freq, i) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.value = freq;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    const start = ctx.currentTime + i * 0.07;
-    gain.gain.setValueAtTime(0, start);
-    gain.gain.linearRampToValueAtTime(0.18, start + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.25);
-    osc.start(start);
-    osc.stop(start + 0.3);
+/* =====================================================
+   啟動：選擇使用者
+   ===================================================== */
+function showUserModal() {
+  const wrap = document.getElementById('user-list-buttons');
+  wrap.innerHTML = '';
+  USERS.forEach(name => {
+    const btn = document.createElement('button');
+    btn.textContent = name;
+    btn.addEventListener('click', () => {
+      setCurrentUser(name);
+      document.getElementById('user-modal').classList.remove('show');
+      renderAll();
+    });
+    wrap.appendChild(btn);
   });
+  document.getElementById('user-modal').classList.add('show');
 }
 
-function playWrongSound() {
-  // 短促但飽滿的放屁聲：低頻 + 顫動 + 尾音上揚
-  const ctx = getAudioCtx();
-  const start = ctx.currentTime;
-  const duration = 0.85;
-  
-  // 主音 — 低頻鋸齒波
-  // 頻率走勢：開頭 170Hz，前 60% 緩降到 110Hz，最後 40% 上揚到 220Hz（尾音上揚）
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.type = 'sawtooth';
-  osc.frequency.setValueAtTime(170, start);
-  osc.frequency.linearRampToValueAtTime(110, start + duration * 0.55);
-  osc.frequency.linearRampToValueAtTime(220, start + duration);
-  
-  // 顫音 LFO 模擬「噗噗噗」氣音感
-  const lfo = ctx.createOscillator();
-  const lfoGain = ctx.createGain();
-  lfo.frequency.value = 22;
-  lfoGain.gain.value = 28;
-  lfo.connect(lfoGain);
-  lfoGain.connect(osc.frequency);
-  
-  // 音量包絡：快速起音、中段穩定、尾段稍微再強調一下上揚
-  gain.gain.setValueAtTime(0, start);
-  gain.gain.linearRampToValueAtTime(0.55, start + 0.03);
-  gain.gain.setValueAtTime(0.55, start + duration * 0.55);
-  gain.gain.linearRampToValueAtTime(0.45, start + duration * 0.85);
-  gain.gain.exponentialRampToValueAtTime(0.001, start + duration);
-  
-  osc.connect(gain);
-  gain.connect(ctx.destination);
-  osc.start(start);
-  osc.stop(start + duration + 0.05);
-  lfo.start(start);
-  lfo.stop(start + duration + 0.05);
-  
-  // 噪音層 — 加強氣感，尾段變稀薄
-  const bufferSize = Math.floor(ctx.sampleRate * duration);
-  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) {
-    const t = i / bufferSize;
-    const wobble = 1 + 0.35 * Math.sin(i / ctx.sampleRate * 22 * Math.PI * 2);
-    // 噪音在尾段衰減更快，讓上揚的主音更突出
-    const env = t < 0.55 ? (1 - t * 0.3) : (1 - t) * 1.2;
-    data[i] = (Math.random() * 2 - 1) * wobble * Math.max(0, env) * 0.5;
-  }
-  const noise = ctx.createBufferSource();
-  noise.buffer = buffer;
-  const noiseGain = ctx.createGain();
-  noiseGain.gain.value = 0.35;
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'lowpass';
-  // 濾波器頻率也跟著上揚
-  filter.frequency.setValueAtTime(450, start);
-  filter.frequency.linearRampToValueAtTime(700, start + duration);
-  noise.connect(filter);
-  filter.connect(noiseGain);
-  noiseGain.connect(ctx.destination);
-  noise.start(start);
-}
+document.getElementById('switch-user-btn').addEventListener('click', showUserModal);
 
-// =============== 工具函式 ===============
-function shuffle(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+/* =====================================================
+   主渲染
+   ===================================================== */
+let currentRange = 30;  // 7 / 30 / 'all'
+let showAllHistory = false;
+const HISTORY_PREVIEW = 10;
 
-// =============== 全域狀態 ===============
-let allRows = [];           // 全部 Excel 列
-let chaptersMap = {};       // { 'Chapter 1': [rows...], ... }
-let currentChapter = null;
-let questions = [];         // 當前題目陣列
-let qIndex = 0;
-let selectedIdx = 0;
-let locked = false;
-let stats = { correct: 0, wrong: 0, total: 0, wrongList: [] };
-let reviewQueue = [];       // 答錯的題目（會在第一輪結束後重考一次）
-let isReviewRound = false;
-
-// =============== Excel 處理 ===============
-const fileInput = document.getElementById('file-input');
-const fileDrop = document.getElementById('file-drop');
-const fileName = document.getElementById('file-name');
-const errorMsg = document.getElementById('error-msg');
-const chapterSelect = document.getElementById('chapter-select');
-const startBtn = document.getElementById('start-btn');
-const savedFileArea = document.getElementById('saved-file-area');
-
-fileInput.addEventListener('change', e => {
-  if (e.target.files[0]) loadExcelFromFile(e.target.files[0]);
-});
-
-fileDrop.addEventListener('dragover', e => {
-  e.preventDefault();
-  fileDrop.classList.add('dragover');
-});
-fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
-fileDrop.addEventListener('drop', e => {
-  e.preventDefault();
-  fileDrop.classList.remove('dragover');
-  if (e.dataTransfer.files[0]) loadExcelFromFile(e.dataTransfer.files[0]);
-});
-
-function showError(msg) {
-  errorMsg.innerHTML = `<div class="error-msg">⚠ ${msg}</div>`;
-}
-function clearError() { errorMsg.innerHTML = ''; }
-
-// =============== IndexedDB（用來記住上次的 Excel）===============
-const DB_NAME = 'vocab-quiz-db';
-const STORE_NAME = 'files';
-const FILE_KEY = 'last-excel';
-const DICT_KEY = 'last-dictionary';
-
-// 離線英漢字典（key 為小寫英文字，value 為中文翻譯）
-let offlineDict = {};
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = e => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function saveExcelToDB(name, arrayBuffer) {
-  try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put({
-      name,
-      buffer: arrayBuffer,
-      savedAt: new Date().toISOString()
-    }, FILE_KEY);
-    return new Promise(resolve => {
-      tx.oncomplete = () => { db.close(); resolve(); };
-      tx.onerror = () => { db.close(); resolve(); };
-    });
-  } catch (e) {
-    console.warn('無法儲存到 IndexedDB:', e);
-  }
-}
-
-async function loadExcelFromDB() {
-  try {
-    const db = await openDB();
-    return await new Promise(resolve => {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const req = tx.objectStore(STORE_NAME).get(FILE_KEY);
-      req.onsuccess = () => { db.close(); resolve(req.result || null); };
-      req.onerror = () => { db.close(); resolve(null); };
-    });
-  } catch (e) {
-    return null;
-  }
-}
-
-async function clearSavedExcel() {
-  try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).delete(FILE_KEY);
-    return new Promise(resolve => {
-      tx.oncomplete = () => { db.close(); resolve(); };
-      tx.onerror = () => { db.close(); resolve(); };
-    });
-  } catch (e) {}
-}
-
-// === 離線字典：存到 IndexedDB ===
-async function saveDictToDB(dict) {
-  try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put({
-      dict,
-      savedAt: new Date().toISOString()
-    }, DICT_KEY);
-    return new Promise(resolve => {
-      tx.oncomplete = () => { db.close(); resolve(); };
-      tx.onerror = () => { db.close(); resolve(); };
-    });
-  } catch (e) {
-    console.warn('無法儲存字典到 IndexedDB:', e);
-  }
-}
-
-async function loadDictFromDB() {
-  try {
-    const db = await openDB();
-    return await new Promise(resolve => {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const req = tx.objectStore(STORE_NAME).get(DICT_KEY);
-      req.onsuccess = () => { db.close(); resolve(req.result || null); };
-      req.onerror = () => { db.close(); resolve(null); };
-    });
-  } catch (e) {
-    return null;
-  }
-}
-
-// =============== Excel 解析（核心）===============
-function parseExcelBuffer(arrayBuffer) {
-  const wb = XLSX.read(arrayBuffer, { type: 'array' });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws);
-  
-  if (!rows.length) {
-    throw new Error('檔案是空的');
-  }
-  
-  // 偵測欄位名稱（容錯處理：英文/中文）
-  const sample = rows[0];
-  const keys = Object.keys(sample);
-  const findKey = (...candidates) => {
-    for (const c of candidates) {
-      const found = keys.find(k => k.toLowerCase().includes(c.toLowerCase()));
-      if (found) return found;
-    }
-    return null;
-  };
-  
-  const kChapter = findKey('chapter', '章節', '章');
-  const kWord = findKey('vocabulary', 'word', '單字', '英文');
-  const kDef = findKey('chinese', 'definition', '解釋', '翻譯', '中文');
-  const kPos = findKey('part of speech', 'pos', '詞性');
-  
-  if (!kChapter || !kWord || !kDef) {
-    throw new Error('無法辨識欄位。需要包含「Chapter」、「Vocabulary」、「Chinese Explanation」欄位');
-  }
-  
-  allRows = rows.map(r => ({
-    chapter: String(r[kChapter] || '').trim(),
-    word: String(r[kWord] || '').trim(),
-    def: String(r[kDef] || '').trim(),
-    pos: kPos ? String(r[kPos] || '').trim() : ''
-  })).filter(r => r.chapter && r.word && r.def);
-  
-  // 除錯：印出有 3 個以上翻譯的字（在 Console 看 F12）
-  const multi = allRows.filter(r => r.def.split(';').length >= 3);
-  console.log(`[Excel 載入] 共 ${allRows.length} 字，其中 ${multi.length} 字有 3+ 個翻譯`);
-  if (multi.length > 0) {
-    console.log('範例：', multi.slice(0, 5).map(r => `${r.word} → ${r.def}`).join(' | '));
-  }
-  
-  // 分組
-  chaptersMap = {};
-  for (const r of allRows) {
-    if (!chaptersMap[r.chapter]) chaptersMap[r.chapter] = [];
-    chaptersMap[r.chapter].push(r);
-  }
-  
-  // 章節排序：依 Chapter 後的數字
-  const sortedChapters = Object.keys(chaptersMap).sort((a, b) => {
-    const na = parseInt(a.match(/\d+/)?.[0] || '0');
-    const nb = parseInt(b.match(/\d+/)?.[0] || '0');
-    return na - nb;
-  });
-  
-  chapterSelect.innerHTML = '';
-  sortedChapters.forEach(ch => {
-    const opt = document.createElement('option');
-    opt.value = ch;
-    opt.textContent = `${ch}（${chaptersMap[ch].length} 字）`;
-    chapterSelect.appendChild(opt);
-  });
-  chapterSelect.disabled = false;
-  startBtn.disabled = false;
-}
-
-// === 從使用者選的檔案讀取（會儲存到 DB）===
-function loadExcelFromFile(file) {
-  fileName.textContent = file.name;
-  clearError();
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    try {
-      const buffer = e.target.result;
-      parseExcelBuffer(buffer);
-      // 成功的話存到 IndexedDB 供下次使用
-      await saveExcelToDB(file.name, buffer);
-      renderSavedFileBanner(file.name, new Date().toISOString());
-    } catch (err) {
-      console.error(err);
-      showError('讀取檔案失敗：' + err.message);
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-// === 從 IndexedDB 自動載入上次的檔案 ===
-async function tryAutoLoadSavedExcel() {
-  const saved = await loadExcelFromDB();
-  if (!saved) return false;
-  try {
-    parseExcelBuffer(saved.buffer);
-    fileName.textContent = saved.name;
-    renderSavedFileBanner(saved.name, saved.savedAt, 'local');
-    return true;
-  } catch (e) {
-    console.warn('自動載入失敗:', e);
-    await clearSavedExcel();
-    return false;
-  }
-}
-
-// === 啟動時嘗試從同個資料夾抓預設 Excel 檔（給雲端部署用）===
-// 把 Excel 放在跟 index.html 同一個資料夾，下面這個 DEFAULT_EXCEL_URL 指向它
-const DEFAULT_EXCEL_URL = 'vocabulary.xlsx';   // 相對路徑，會跟著網頁 host 走
-const DEFAULT_DICT_URL = 'dictionary.json';     // 離線英漢字典
-
-async function tryLoadDefaultExcel() {
-  try {
-    // 加上時間戳記參數避免瀏覽器/CDN 快取舊檔
-    const url = DEFAULT_EXCEL_URL + '?t=' + Date.now();
-    const resp = await fetch(url, { cache: 'no-store' });
-    if (!resp.ok) return false;
-    const contentType = resp.headers.get('Content-Type') || '';
-    // 確保抓到的真的是 Excel 檔，不是 GitHub 的 404 HTML 頁面
-    const buffer = await resp.arrayBuffer();
-    if (buffer.byteLength < 100) return false;
-    // 簡單檢查：xlsx 檔開頭是 PK (zip 格式)
-    const view = new Uint8Array(buffer.slice(0, 2));
-    if (view[0] !== 0x50 || view[1] !== 0x4B) return false;
-    
-    parseExcelBuffer(buffer);
-    fileName.textContent = DEFAULT_EXCEL_URL;
-    // 同時存到 IndexedDB 讓沒網路時也能用
-    await saveExcelToDB(DEFAULT_EXCEL_URL, buffer);
-    renderSavedFileBanner(DEFAULT_EXCEL_URL, new Date().toISOString(), 'cloud');
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-// === 嘗試載入離線英漢字典（雲端優先 → IndexedDB 快取）===
-async function tryLoadDictionary() {
-  // 1. 先試雲端最新版
-  try {
-    const url = DEFAULT_DICT_URL + '?t=' + Date.now();
-    const resp = await fetch(url, { cache: 'no-store' });
-    if (resp.ok) {
-      const text = await resp.text();
-      if (text && text.length > 100) {
-        try {
-          const dict = JSON.parse(text);
-          if (dict && typeof dict === 'object' && Object.keys(dict).length > 100) {
-            offlineDict = dict;
-            await saveDictToDB(dict);
-            console.log(`[字典載入] 雲端：${Object.keys(dict).length} 字`);
-            return true;
-          }
-        } catch (e) {
-          console.warn('字典 JSON 解析失敗:', e);
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('雲端字典載入失敗:', e);
-  }
-  // 2. 雲端失敗就用本機快取
-  try {
-    const saved = await loadDictFromDB();
-    if (saved && saved.dict && typeof saved.dict === 'object') {
-      offlineDict = saved.dict;
-      console.log(`[字典載入] 本機快取：${Object.keys(saved.dict).length} 字`);
-      return true;
-    }
-  } catch (e) {}
-  console.log('[字典載入] 失敗，將沒有英漢字典查詢功能');
-  return false;
-}
-
-function renderSavedFileBanner(name, savedAt, source) {
-  // banner 已從 UI 隱藏，只更新底部 info-text
-  const info = document.getElementById('info-text');
-  if (info) {
-    info.textContent = `共 ${allRows.length} 字 / ${Object.keys(chaptersMap).length} 章 · 輸入英文 · Enter 確認`;
-  }
-}
-
-// 啟動載入順序：先試雲端最新版，失敗再用本機快取；同時並行載入離線字典
-(async () => {
-  // 並行：Excel 字庫 + 離線字典（字典失敗也沒關係，不影響主功能）
-  const [cloudOk, _dictOk] = await Promise.all([
-    tryLoadDefaultExcel(),
-    tryLoadDictionary()
-  ]);
-  if (!cloudOk) {
-    const cachedOk = await tryAutoLoadSavedExcel();
-    if (!cachedOk) {
-      const visible = document.getElementById('error-msg-visible');
-      if (visible) visible.textContent = '字庫載入失敗，請確認 vocabulary.xlsx 是否在同一個資料夾，並重新整理頁面。';
-      const info = document.getElementById('info-text');
-      if (info) info.textContent = '';
-    }
-  }
-})();
-
-// =============== 開始 ===============
-startBtn.addEventListener('click', () => {
-  currentChapter = chapterSelect.value;
-  if (currentMode === 'browse') {
-    startBrowse(chaptersMap[currentChapter]);
-  } else {
-    startQuiz(chaptersMap[currentChapter]);
-  }
-});
-
-// 模式狀態（'browse' / 'easy' / 'normal'，預設 'easy'）
-let currentMode = 'easy';
-
-// 模式切換按鈕（起始畫面）
-document.getElementById('setup-mode-browse').addEventListener('click', () => setSetupMode('browse'));
-document.getElementById('setup-mode-easy').addEventListener('click', () => setSetupMode('easy'));
-document.getElementById('setup-mode-normal').addEventListener('click', () => setSetupMode('normal'));
-
-function setSetupMode(mode) {
-  currentMode = mode;
-  const browseBtn = document.getElementById('setup-mode-browse');
-  const easyBtn = document.getElementById('setup-mode-easy');
-  const normalBtn = document.getElementById('setup-mode-normal');
-  // 統一先全部設成未選取，再把選到的設成 active
-  for (const b of [browseBtn, easyBtn, normalBtn]) {
-    b.style.background = 'var(--paper)';
-    b.style.color = 'var(--ink)';
-    b.classList.remove('active');
-  }
-  const activeBtn = mode === 'browse' ? browseBtn : (mode === 'easy' ? easyBtn : normalBtn);
-  activeBtn.style.background = 'var(--ink)';
-  activeBtn.style.color = 'var(--paper)';
-  activeBtn.classList.add('active');
-  // 同步右上角模式按鈕（手動模式不適用，因右上角只有 easy/normal）
-  document.getElementById('mode-easy').classList.toggle('active', mode === 'easy');
-  document.getElementById('mode-normal').classList.toggle('active', mode === 'normal');
-  // 開始按鈕文字
-  const sb = document.getElementById('start-btn');
-  if (sb) sb.textContent = (mode === 'browse') ? '開始瀏覽' : '開 始';
-}
-
-// 考試中右上角的模式切換按鈕
-document.getElementById('mode-easy').addEventListener('click', () => switchModeMidQuiz('easy'));
-document.getElementById('mode-normal').addEventListener('click', () => switchModeMidQuiz('normal'));
-
-function switchModeMidQuiz(mode) {
-  currentMode = mode;
-  setSetupMode(mode);
-  // 如果在考試中且尚未答題（沒鎖定），重渲染當前題目以更新提示
-  if (document.getElementById('quiz-screen').classList.contains('active') && !locked) {
-    renderQuestion();
-  }
-}
-
-function startQuiz(words) {
-  // 為每個字產生題目
-  questions = shuffle(words).map(w => buildQuestion(w));
-  qIndex = 0;
-  stats = { correct: 0, wrong: 0, total: questions.length, wrongList: [] };
-  reviewQueue = [];
-  isReviewRound = false;
-  
-  document.getElementById('round-tag').textContent = 'FIRST ROUND';
-  document.getElementById('round-tag').classList.remove('review');
-  document.getElementById('mode-panel').style.display = '';
-  
-  switchScreen('quiz-screen');
-  renderQuestion();
-}
-
-// 把 def 字串拆成翻譯陣列、做 trim
-function splitDefs(defStr) {
-  return String(defStr || '').split(';').map(s => s.trim()).filter(Boolean);
-}
-
-// 把 pos 字串去重後合併（避免顯示 verb;verb;verb，改成 verb；如有 noun;verb 則留下兩個）
-function uniqPos(posStr) {
-  const list = String(posStr || '').split(';').map(s => s.trim()).filter(Boolean);
-  const seen = new Set();
-  const out = [];
-  for (const p of list) {
-    if (!seen.has(p)) { seen.add(p); out.push(p); }
-  }
-  return out.join(' / ');
-}
-
-function buildQuestion(target) {
-  const correctDefs = splitDefs(target.def);  // 該字的所有翻譯
-  return {
-    word: String(target.word).trim(),
-    posDisplay: uniqPos(target.pos),
-    correctDefs,                  // 顯示給使用者看的中文翻譯
-    correctDefsRaw: target.def,
-  };
-}
-
-// 簡單模式判定：學生輸入的英文，它的「翻譯之一」必須在題目顯示的翻譯之內
-// = 學生答案對應的英文單字（跨整個 allRows）裡，找有對應到題目顯示翻譯的字
-// 預先建立 word → defs 的快取
-let wordToDefsMap = null;
-function getWordToDefsMap() {
-  if (wordToDefsMap) return wordToDefsMap;
-  wordToDefsMap = {};
-  for (const r of allRows) {
-    const w = String(r.word).trim().toLowerCase();
-    if (!wordToDefsMap[w]) wordToDefsMap[w] = new Set();
-    splitDefs(r.def).forEach(d => wordToDefsMap[w].add(d));
-  }
-  return wordToDefsMap;
-}
-
-// 簡單模式：題目顯示了 N 個翻譯，學生答案對應的翻譯必須包含「題目所有顯示的翻譯」
-// 嚴格交集：學生答案的翻譯集合 ⊇ 題目顯示的翻譯集合
-function isCorrectEasy(userWord, qDefs) {
-  const map = getWordToDefsMap();
-  const w = userWord.trim().toLowerCase();
-  if (!w) return false;
-  const userDefs = map[w];
-  if (!userDefs) return false;  // 學生打的字不在字庫裡
-  // 必須題目所有翻譯都在學生這個字的翻譯集合裡
-  for (const d of qDefs) {
-    if (!userDefs.has(d)) return false;
-  }
-  return true;
-}
-
-// 一般模式：完全相同（忽略大小寫和首尾空白）
-function isCorrectNormal(userWord, targetWord) {
-  return userWord.trim().toLowerCase() === targetWord.trim().toLowerCase();
-}
-
-// 簡單模式提示遮罩：n _ _ _ _ _ s
-// 兩字母單字（如 by、me）只顯示首字母，避免變相直接給出答案
-function buildMaskHint(word) {
-  const w = word.trim();
-  if (w.length === 0) return '';
-  if (w.length === 1) return w;
-  if (w.length === 2) return w[0] + ' _';
-  const middle = Array(w.length - 2).fill('_').join(' ');
-  return w[0] + ' ' + middle + ' ' + w[w.length - 1];
-}
-
-// 簡單模式：找出題目「所有顯示翻譯都對應到」的英文單字（用於答錯時顯示正解）
-function findValidAnswers(qDefs) {
-  const map = getWordToDefsMap();
-  const valid = [];
-  for (const w in map) {
-    const defs = map[w];
-    let ok = true;
-    for (const d of qDefs) {
-      if (!defs.has(d)) { ok = false; break; }
-    }
-    if (ok) valid.push(w);
-  }
-  return valid;
-}
-
-// =============== 渲染題目 ===============
-function renderQuestion() {
-  if (qIndex >= questions.length) {
-    if (!isReviewRound && reviewQueue.length > 0) {
-      isReviewRound = true;
-      questions = reviewQueue.map(w => buildQuestion(w));
-      qIndex = 0;
-      reviewQueue = [];
-      const tag = document.getElementById('round-tag');
-      tag.textContent = `REVIEW · ${questions.length} 題`;
-      tag.classList.add('review');
-      setTimeout(renderQuestion, 100);
-      return;
-    }
-    showResult();
+function renderAll() {
+  const user = getCurrentUser();
+  if (!user || !USERS.includes(user)) {
+    document.getElementById('main-container').style.display = 'none';
+    showUserModal();
     return;
   }
-  
-  const q = questions[qIndex];
-  
-  // 中文翻譯顯示（用 ；分隔）
-  document.getElementById('definition').textContent = q.correctDefs.join('；');
-  document.getElementById('pos').textContent = q.posDisplay || '';
-  
-  // 簡單模式才顯示首尾字母提示
-  const maskEl = document.getElementById('mask-hint');
-  if (currentMode === 'easy') {
-    maskEl.innerHTML = buildMaskHint(q.word) +
-      `<span class="mask-count">${q.word.length} letters</span>`;
-  } else {
-    maskEl.innerHTML = '';
-  }
-  
-  // 清空輸入框 + 把焦點放上去
-  const input = document.getElementById('answer-input');
-  input.value = '';
-  input.classList.remove('correct', 'wrong');
-  input.disabled = false;
-  setTimeout(() => input.focus(), 50);
-  
-  // 清空正解區、實際意思區、按鍵提示
-  const ansBox = document.getElementById('correct-answers');
-  ansBox.classList.remove('show');
-  ansBox.innerHTML = '';
-  const meaningEl = document.getElementById('user-answer-meaning');
-  meaningEl.classList.remove('show');
-  meaningEl.innerHTML = '';
-  const pressEnterEl = document.getElementById('press-enter-hint');
-  pressEnterEl.classList.remove('show');
-  pressEnterEl.innerHTML = '';
-  
-  locked = false;
-  document.body.classList.remove('locked');
-  updateCounter();
+  document.getElementById('main-container').style.display = '';
+  document.getElementById('topbar-user-name').textContent = user;
+
+  const history = loadHistory(user);
+
+  renderTopbarStats(history);
+  renderToolCards(user, history);
+  renderHeatmap(history);
+  renderAccuracy(history);
+  renderTopWrong(history);
+  renderHistoryTable(history);
 }
 
-function updateCounter() {
-  const pad = n => String(n).padStart(2, '0');
-  document.getElementById('c-correct').textContent = pad(stats.correct);
-  document.getElementById('c-wrong').textContent = pad(stats.wrong);
-  document.getElementById('c-total').textContent = pad(stats.total);
+function renderTopbarStats(history) {
+  const el = document.getElementById('topbar-user-stats');
+  if (history.length === 0) {
+    el.textContent = '尚無紀錄';
+    return;
+  }
+  // 連續打卡天數
+  const streak = computeStreak(history);
+  const total = history.length;
+  let txt = `共完成 ${total} 次練習`;
+  if (streak >= 2) txt += ` · 連續 ${streak} 天`;
+  el.textContent = txt;
 }
 
-// =============== 提交答案 ===============
-let waitingForNext = false;  // 答錯後等待第二次 Enter 才下一題
-
-function submitAnswer() {
-  if (locked) return;
-  
-  const q = questions[qIndex];
-  const input = document.getElementById('answer-input');
-  const userAnswer = input.value.trim();
-  
-  if (userAnswer === '') return;  // 空字串不送出
-  
-  locked = true;
-  document.body.classList.add('locked');
-  input.disabled = true;
-  
-  let correct = false;
-  let validAnswers;
-  
-  if (currentMode === 'easy') {
-    // 簡單模式：給首尾字母提示 → 必須完全相同
-    correct = isCorrectNormal(userAnswer, q.word);
-    validAnswers = [q.word];
-  } else {
-    // 一般模式：無提示 → 任一同義字都對（嚴格交集）
-    correct = isCorrectEasy(userAnswer, q.correctDefs);
-    validAnswers = findValidAnswers(q.correctDefs);
-    if (!validAnswers.map(w => w.toLowerCase()).includes(q.word.toLowerCase())) {
-      validAnswers.unshift(q.word);
-    }
-  }
-  
-  if (correct) {
-    document.body.classList.add('correct-flash');
-    input.classList.add('correct');
-    if (!isReviewRound) stats.correct++;
-    playCorrectSound();
-    waitingForNext = false;
-    
-    // 答對：顯示正解資訊（讓學生看到完整答案 / 同義字）
-    const ansBox = document.getElementById('correct-answers');
-    ansBox.innerHTML = `<span class="label">正確答案</span>` +
-      validAnswers.map(w => `<span class="ans">${w}</span>`).join('');
-    ansBox.classList.add('show');
-    
-    // 1.5 秒後自動下一題
-    setTimeout(() => {
-      document.body.classList.remove('correct-flash', 'wrong-flash');
-      qIndex++;
-      renderQuestion();
-    }, 1500);
-  } else {
-    document.body.classList.add('wrong-flash');
-    input.classList.add('wrong');
-    
-    // 1. 在題目下方顯示正確答案（一個或多個）
-    const ansBox = document.getElementById('correct-answers');
-    ansBox.innerHTML = `<span class="label">正確答案</span>` +
-      validAnswers.map(w => `<span class="ans">${w}</span>`).join('');
-    ansBox.classList.add('show');
-    
-    // 2. 在學生輸入的字旁邊顯示「是 XXX」（若該字在字庫裡，顯示中文意思）
-    const userMeaningInfo = lookupMeaning(userAnswer);
-    const meaningEl = document.getElementById('user-answer-meaning');
-    if (userMeaningInfo) {
-      if (userMeaningInfo.source === 'excel') {
-        // 在課本字庫：顯示「是 XXX」
-        meaningEl.innerHTML = `<span class="verb">是</span><span class="meaning">${userMeaningInfo.meaning}</span>`;
-      } else {
-        // 不在課本字庫但在離線字典：顯示「是『XXX』，但這不是這題答案」
-        meaningEl.innerHTML =
-          `<span class="verb">是</span>` +
-          `<span class="meaning">『${userMeaningInfo.meaning}』</span>` +
-          `<span class="verb" style="margin-left:0.4em">，但這不是這題答案</span>`;
-      }
+function computeStreak(history) {
+  // 從今天往回數，每天至少有一筆紀錄就 +1
+  if (!history.length) return 0;
+  const dates = new Set(history.map(h => h.date.slice(0, 10)));
+  let streak = 0;
+  const d = new Date();
+  for (let i = 0; i < 365; i++) {
+    const key = d.toISOString().slice(0, 10);
+    if (dates.has(key)) {
+      streak++;
     } else {
-      meaningEl.innerHTML = `<span class="verb">不是英文單字</span>`;
+      // 第一天就沒打卡：直接 0；不然斷了就停
+      if (i === 0) {
+        // 今天沒打卡，但昨天有的話 streak 算到昨天
+        d.setDate(d.getDate() - 1);
+        continue;
+      }
+      break;
     }
-    meaningEl.classList.add('show');
-    
-    // 3. 提示「再按 Enter 繼續」
-    const pressEnterEl = document.getElementById('press-enter-hint');
-    pressEnterEl.textContent = '— 再按一次 Enter 繼續 —';
-    pressEnterEl.classList.add('show');
-    
-    if (!isReviewRound) {
-      stats.wrong++;
-      stats.wrongList.push({
-        word: q.word,
-        correctDefs: q.correctDefs.join('；'),
-        validAnswers: validAnswers.join(' / '),
-        userAnswer: userAnswer
-      });
-      const original = chaptersMap[currentChapter].find(w => w.word === q.word);
-      if (original) reviewQueue.push(original);
-    }
-    playWrongSound();
-    // 把 waitingForNext = true 延後一個 tick，避免同一次 Enter 事件冒泡到 document listener
-    // 立刻被當成「再按一次」而跳到下一題
-    setTimeout(() => { waitingForNext = true; }, 0);
-    
-    setTimeout(() => {
-      document.body.classList.remove('correct-flash', 'wrong-flash');
-    }, 600);
+    d.setDate(d.getDate() - 1);
   }
-  updateCounter();
+  return streak;
 }
 
-// 查學生輸入的英文，回傳它的中文意思（若有）
-// 回傳格式：{ source: 'excel'|'dict', meaning: string } 或 null
-function lookupMeaning(userWord) {
-  const w = userWord.trim().toLowerCase();
-  if (!w) return null;
-  // 1. 先查課文字庫（Excel）
-  const map = getWordToDefsMap();
-  const defs = map[w];
-  if (defs) {
-    return { source: 'excel', meaning: Array.from(defs).join('；') };
-  }
-  // 2. 再查離線英漢字典（fallback）
-  if (offlineDict && offlineDict[w]) {
-    return { source: 'dict', meaning: offlineDict[w] };
-  }
-  return null;
-}
+function renderToolCards(user, history) {
+  const grid = document.getElementById('tools-grid');
+  grid.innerHTML = '';
+  Object.entries(TOOLS).forEach(([toolKey, tool]) => {
+    // 找這個工具最近的一筆
+    const recent = [...history].reverse().find(h => h.tool === toolKey);
+    const card = document.createElement('a');
+    card.className = 'tool-card ' + tool.cls;
+    // 把使用者名字透過 URL 帶過去
+    card.href = tool.url + '?user=' + encodeURIComponent(user);
 
-function advanceAfterWrong() {
-  // 答錯後第二次按 Enter 才呼叫
-  waitingForNext = false;
-  qIndex++;
-  renderQuestion();
-}
-
-// =============== 鍵盤事件 ===============
-const answerInputEl = document.getElementById('answer-input');
-answerInputEl.addEventListener('keydown', e => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    e.stopPropagation();  // 不讓同一次 Enter 冒泡到 document listener
-    if (waitingForNext) {
-      advanceAfterWrong();
-    } else if (!locked) {
-      submitAnswer();
-    }
-  }
-});
-
-// 全域 Enter（即使 input 沒 focus，按 Enter 也能繼續）
-document.addEventListener('keydown', e => {
-  if (!document.getElementById('quiz-screen').classList.contains('active')) return;
-  if (e.key === 'Enter' && waitingForNext) {
-    e.preventDefault();
-    advanceAfterWrong();
-  }
-});
-
-// =============== 結果畫面 ===============
-function showResult() {
-  document.getElementById('mode-panel').style.display = 'none';
-  
-  const pad = n => String(n).padStart(2, '0');
-  document.getElementById('r-correct').textContent = pad(stats.correct);
-  document.getElementById('r-wrong').textContent = pad(stats.wrong);
-  document.getElementById('r-total').textContent = pad(stats.total);
-  const pct = ((stats.correct / stats.total) * 100).toFixed(1);
-  document.getElementById('r-percent').textContent = `正確率 ${pct}%`;
-  
-  const fartEl = document.getElementById('fart-count');
-  if (stats.wrong === 0) {
-    fartEl.innerHTML = `<span class="fart-emoji">✨</span>一次屁都沒放！`;
-    fartEl.classList.add('zero');
-  } else {
-    fartEl.innerHTML = `<span class="fart-emoji">💨</span>放屁 ${stats.wrong} 次`;
-    fartEl.classList.remove('zero');
-  }
-  
-  const wc = document.getElementById('wrong-container');
-  if (stats.wrongList.length === 0) {
-    wc.innerHTML = '<div class="perfect">✦ 全部答對 ✦</div>';
-  } else {
-    const ul = document.createElement('ul');
-    ul.className = 'wrong-list';
-    stats.wrongList.forEach(w => {
-      const li = document.createElement('li');
-      li.innerHTML = `
-        <span class="w-word">${w.correctDefs}</span>
-        <span class="w-correct">${w.validAnswers}</span>
-        <span class="w-x">×</span>
-        <span class="w-picked">${w.userAnswer}</span>
+    let recentHtml = '<span style="color:var(--gray); font-style:italic">尚未練習過</span>';
+    if (recent) {
+      const pct = recent.total > 0 ? Math.round(recent.correct / recent.total * 100) : 0;
+      const pctCls = pct >= 90 ? 'high' : (pct < 70 ? 'low' : '');
+      const dateStr = formatDate(recent.date);
+      const perfect = recent.wrong === 0 ? ' ✨' : '';
+      recentHtml = `
+        <strong>${recent.correct} / ${recent.total}</strong>
+        <span style="color: var(--ink-soft); margin-left:6px; font-size:13px">${pct}%${perfect}</span>
+        <div class="recent-meta">${dateStr} · ${escapeHtml(recent.chapter)}</div>
       `;
-      ul.appendChild(li);
+    }
+
+    card.innerHTML = `
+      <div class="tool-icon">${tool.icon}</div>
+      <div class="tool-name">${tool.name}</div>
+      <div class="tool-name-en">${tool.nameEn}</div>
+      <div class="tool-recent">${recentHtml}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+/* ----- 練習熱度長條圖 ----- */
+function renderHeatmap(history) {
+  const heatmap = document.getElementById('heatmap');
+  const axis = document.getElementById('heatmap-axis');
+  heatmap.innerHTML = '';
+  axis.innerHTML = '';
+
+  // 決定起訖日
+  let days, startDate;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (currentRange === 'all') {
+    if (history.length === 0) {
+      heatmap.innerHTML = '<div class="empty-hint" style="width:100%">尚無紀錄</div>';
+      return;
+    }
+    const earliestStr = history.reduce((min, h) => h.date < min ? h.date : min, history[0].date);
+    startDate = new Date(earliestStr.slice(0, 10));
+    days = Math.max(1, Math.round((today - startDate) / 86400000) + 1);
+    if (days > 90) days = 90;  // 太多會擠
+    startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - days + 1);
+  } else {
+    days = currentRange;
+    startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - days + 1);
+  }
+
+  // 統計每日次數
+  const dayCount = {};
+  history.forEach(h => {
+    const k = h.date.slice(0, 10);
+    dayCount[k] = (dayCount[k] || 0) + 1;
+  });
+
+  // 找最大值決定 bar 高度
+  let maxCount = 1;
+  for (let i = 0; i < days; i++) {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    const c = dayCount[d.toISOString().slice(0, 10)] || 0;
+    if (c > maxCount) maxCount = c;
+  }
+
+  for (let i = 0; i < days; i++) {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    const k = d.toISOString().slice(0, 10);
+    const c = dayCount[k] || 0;
+    const bar = document.createElement('div');
+    bar.className = 'bar' + (c > 0 ? ' has-data' : '');
+    const heightPct = c > 0 ? Math.max(8, (c / maxCount) * 100) : 4;
+    bar.style.height = heightPct + '%';
+    const tip = document.createElement('div');
+    tip.className = 'bar-tip';
+    tip.textContent = `${k.slice(5).replace('-', '/')} · ${c} 次`;
+    bar.appendChild(tip);
+    heatmap.appendChild(bar);
+  }
+
+  // 軸標：起、中、迄
+  const fmt = d => `${d.getMonth() + 1}/${d.getDate()}`;
+  const mid = new Date(startDate);
+  mid.setDate(startDate.getDate() + Math.floor(days / 2));
+  axis.innerHTML = `<span>${fmt(startDate)}</span><span>${fmt(mid)}</span><span>${fmt(today)}</span>`;
+}
+
+/* ----- 各工具平均正確率 ----- */
+function renderAccuracy(history) {
+  const wrap = document.getElementById('accuracy-list');
+  wrap.innerHTML = '';
+  // 過濾範圍
+  const filtered = filterByRange(history);
+  Object.entries(TOOLS).forEach(([toolKey, tool]) => {
+    const recs = filtered.filter(h => h.tool === toolKey);
+    let bar;
+    if (recs.length === 0) {
+      bar = `
+        <div class="accuracy-row ${tool.cls}">
+          <div class="acc-label">${tool.name.slice(0, 4)}</div>
+          <div class="acc-bar-wrap"><div class="acc-bar" style="width:0%"></div></div>
+          <div class="acc-empty">無紀錄</div>
+        </div>`;
+    } else {
+      const correct = recs.reduce((s, h) => s + h.correct, 0);
+      const total = recs.reduce((s, h) => s + h.total, 0);
+      const pct = total > 0 ? Math.round(correct / total * 100) : 0;
+      bar = `
+        <div class="accuracy-row ${tool.cls}">
+          <div class="acc-label">${tool.name.slice(0, 4)}</div>
+          <div class="acc-bar-wrap"><div class="acc-bar" style="width:${pct}%"></div></div>
+          <div class="acc-pct">${pct}%</div>
+        </div>`;
+    }
+    wrap.insertAdjacentHTML('beforeend', bar);
+  });
+}
+
+/* ----- 最常錯的題目 ----- */
+function renderTopWrong(history) {
+  const ul = document.getElementById('top-wrong-list');
+  ul.innerHTML = '';
+  const filtered = filterByRange(history);
+  // 聚合
+  const counter = {};  // key: tool|word, value: { tool, word, count }
+  filtered.forEach(h => {
+    if (!Array.isArray(h.wrongList)) return;
+    h.wrongList.forEach(w => {
+      const word = (typeof w === 'string') ? w : (w.word || w.target || w.question || '');
+      if (!word) return;
+      const k = h.tool + '|' + word;
+      if (!counter[k]) counter[k] = { tool: h.tool, word, count: 0 };
+      counter[k].count++;
     });
-    wc.innerHTML = '';
-    wc.appendChild(ul);
-  }
+  });
+  const list = Object.values(counter)
+    .filter(x => x.count >= 2)  // 只列錯 2 次以上
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
 
-  // === 寫入學習中心歷史紀錄 ===
-  // 只在「完成全部題目」時存（手動瀏覽模式不會走到 showResult；只考錯題目前是把 stats 重置後再開始，第一輪結束的 showResult 才有完整成績）
-  if (window.QuizHistory && window.QuizHistory.enabled && stats.total > 0) {
-    try {
-      window.QuizHistory.save({
-        tool: 'spelling',
-        chapter: currentChapter || '',
-        correct: stats.correct,
-        wrong: stats.wrong,
-        total: stats.total,
-        // 只記英文正解（簡化結構），方便首頁聚合「最常錯」
-        wrongList: stats.wrongList.map(w => ({
-          word: (w.validAnswers || '').split(' / ')[0] || '',
-          userAnswer: w.userAnswer || '',
-          defs: w.correctDefs || ''
-        })),
-        date: new Date().toISOString()
-      });
-    } catch (e) { console.warn('save history failed', e); }
+  if (list.length === 0) {
+    ul.innerHTML = '<li class="empty-hint" style="border-bottom:0">這段時間沒有重複錯誤的題目 ✨</li>';
+    return;
   }
-  
-  switchScreen('result-screen');
+  list.forEach(({ tool, word, count }) => {
+    const li = document.createElement('li');
+    const cls = TOOLS[tool] ? TOOLS[tool].cls : '';
+    li.innerHTML = `
+      <span class="word"><span class="tag ${cls}">${TOOLS[tool] ? TOOLS[tool].name.slice(0, 2) : tool}</span> ${escapeHtml(word)}</span>
+      <span class="count">錯 ${count} 次</span>
+    `;
+    ul.appendChild(li);
+  });
 }
 
-document.getElementById('retry-btn').addEventListener('click', () => {
-  startQuiz(chaptersMap[currentChapter]);
-});
-document.getElementById('back-btn').addEventListener('click', () => {
-  switchScreen('setup-screen');
-});
+/* ----- 歷史紀錄表 ----- */
+function renderHistoryTable(history) {
+  const tbody = document.getElementById('history-tbody');
+  tbody.innerHTML = '';
+  if (history.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-hint" style="text-align:center; padding:32px">— 尚未有紀錄 —</td></tr>`;
+    document.getElementById('show-more-btn').style.display = 'none';
+    return;
+  }
 
-// =============== 手動瀏覽模式 ===============
-let browseList = [];
-let browseIdx = 0;
+  const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
+  const display = showAllHistory ? sorted : sorted.slice(0, HISTORY_PREVIEW);
 
-function startBrowse(words) {
-  // 依字母順序排序，方便瀏覽（不洗牌；要看哪個字找得到）
-  browseList = [...words].sort((a, b) =>
-    a.word.toLowerCase().localeCompare(b.word.toLowerCase())
-  );
-  browseIdx = 0;
-  // 隱藏右上角模式面板（瀏覽模式不需要）
-  document.getElementById('mode-panel').style.display = 'none';
-  switchScreen('browse-screen');
-  renderBrowse();
-}
+  display.forEach(h => {
+    const tool = TOOLS[h.tool] || { name: h.tool, cls: '' };
+    const pct = h.total > 0 ? Math.round(h.correct / h.total * 100) : 0;
+    const pctCls = pct >= 90 ? 'high' : (pct < 70 ? 'low' : '');
+    const perfect = h.wrong === 0 ? ' <span class="h-perfect">✨</span>' : '';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="h-date">${formatDateTime(h.date)}</td>
+      <td class="h-tool"><span class="tag ${tool.cls}">${tool.name}</span></td>
+      <td>${escapeHtml(h.chapter)}</td>
+      <td class="h-score">${h.correct} / ${h.total}${perfect}</td>
+      <td class="h-pct ${pctCls}">${pct}%</td>
+    `;
+    tbody.appendChild(tr);
+  });
 
-function renderBrowse() {
-  if (!browseList.length) return;
-  const item = browseList[browseIdx];
-  document.getElementById('browse-counter').textContent =
-    `${browseIdx + 1} / ${browseList.length}`;
-  document.getElementById('browse-def').textContent = item.def || '';
-  document.getElementById('browse-pos').textContent = item.pos || '';
-  document.getElementById('browse-word').textContent = item.word || '';
-  // 加上翻頁動畫
-  const content = document.querySelector('#browse-screen .browse-content');
-  if (content) {
-    content.classList.remove('flip');
-    void content.offsetWidth;  // 強制重排，讓動畫重新觸發
-    content.classList.add('flip');
+  const moreBtn = document.getElementById('show-more-btn');
+  if (sorted.length > HISTORY_PREVIEW) {
+    moreBtn.style.display = '';
+    moreBtn.textContent = showAllHistory ? '收起' : `顯示全部 (${sorted.length})`;
+  } else {
+    moreBtn.style.display = 'none';
   }
 }
 
-function browseNext() {
-  if (!browseList.length) return;
-  if (browseIdx < browseList.length - 1) {
-    browseIdx++;
-    renderBrowse();
+document.getElementById('show-more-btn').addEventListener('click', () => {
+  showAllHistory = !showAllHistory;
+  renderAll();
+});
+
+/* ----- 範圍切換 ----- */
+document.querySelectorAll('.range-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const r = btn.getAttribute('data-range');
+    currentRange = (r === 'all') ? 'all' : parseInt(r, 10);
+    document.querySelectorAll('.range-tabs button').forEach(b => b.classList.toggle('active', b === btn));
+    renderAll();
+  });
+});
+
+function filterByRange(history) {
+  if (currentRange === 'all') return history;
+  const cutoff = new Date();
+  cutoff.setHours(0, 0, 0, 0);
+  cutoff.setDate(cutoff.getDate() - currentRange + 1);
+  return history.filter(h => new Date(h.date) >= cutoff);
+}
+
+/* ----- 工具函式 ----- */
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatDate(iso) {
+  // YYYY-MM-DD → M/D
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+function formatDateTime(iso) {
+  const d = new Date(iso);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const dStart = new Date(d);
+  dStart.setHours(0, 0, 0, 0);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  if (dStart.getTime() === today.getTime()) {
+    return `今天 ${hh}:${mm}`;
+  } else if (dStart.getTime() === yesterday.getTime()) {
+    return `昨天 ${hh}:${mm}`;
+  } else {
+    return `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm}`;
   }
 }
 
-function browsePrev() {
-  if (!browseList.length) return;
-  if (browseIdx > 0) {
-    browseIdx--;
-    renderBrowse();
-  }
-}
-
-// 點擊區（左/右半邊）— 觸控與滑鼠都可用
-document.getElementById('browse-tap-prev').addEventListener('click', e => {
-  e.preventDefault();
-  browsePrev();
-});
-document.getElementById('browse-tap-next').addEventListener('click', e => {
-  e.preventDefault();
-  browseNext();
-});
-
-// 回主選單
-document.getElementById('browse-back-btn').addEventListener('click', e => {
-  // 阻止冒泡到背景的 tap-zone
-  e.stopPropagation();
-  switchScreen('setup-screen');
-});
-
-// 鍵盤導覽（左右鍵 / Page Up Down / Home End）
-document.addEventListener('keydown', e => {
-  if (!document.getElementById('browse-screen').classList.contains('active')) return;
-  switch (e.key) {
-    case 'ArrowRight':
-    case 'PageDown':
-    case ' ':
-      e.preventDefault();
-      browseNext();
-      break;
-    case 'ArrowLeft':
-    case 'PageUp':
-      e.preventDefault();
-      browsePrev();
-      break;
-    case 'Home':
-      e.preventDefault();
-      browseIdx = 0;
-      renderBrowse();
-      break;
-    case 'End':
-      e.preventDefault();
-      browseIdx = browseList.length - 1;
-      renderBrowse();
-      break;
-    case 'Escape':
-      e.preventDefault();
-      switchScreen('setup-screen');
-      break;
-  }
-});
-
-function switchScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
+/* =====================================================
+   啟動
+   ===================================================== */
+renderAll();
 </script>
 </body>
 </html>
