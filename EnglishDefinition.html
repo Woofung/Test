@@ -584,6 +584,7 @@
     <button class="start-btn" id="start-btn" disabled>開始考試</button>
     <p class="info-text" id="info-text">操作：方向鍵選擇 · 空白鍵確認</p>
     <div id="error-msg-visible" style="color: var(--accent); font-size: 14px; margin-top: 12px; text-align: center;"></div>
+    <div id="recent-wrong-box" class="recent-wrong-box" style="display:none"></div>
   </div>
 </div>
 
@@ -908,6 +909,17 @@ function parseExcelBuffer(arrayBuffer) {
       chapterSelect.value = urlChapter;
     }
   } catch (e) {}
+
+  // 顯示該章節的最近一次錯題
+  if (window.RecentWrong) {
+    window.RecentWrong.update('vocab', chapterSelect.value);
+  }
+  // 切章節時也要更新
+  chapterSelect.addEventListener('change', () => {
+    if (window.RecentWrong) {
+      window.RecentWrong.update('vocab', chapterSelect.value);
+    }
+  });
 }
 
 // === 從使用者選的檔案讀取（會儲存到 DB）===
@@ -1302,5 +1314,173 @@ function switchScreen(id) {
   document.getElementById(id).classList.add('active');
 }
 </script>
+<style>
+.recent-wrong-box {
+  margin-top: 22px;
+  padding: 18px 20px;
+  background: rgba(184, 68, 46, 0.05);
+  border: 1px solid #d8b8a8;
+  border-radius: 3px;
+}
+.recent-wrong-box .rwb-title {
+  font-family: 'Didot', 'Bodoni 72', serif;
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: #5a5048;
+  margin-bottom: 4px;
+}
+.recent-wrong-box .rwb-meta {
+  font-style: italic;
+  font-size: 12px;
+  color: #9a9080;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+.recent-wrong-box .rwb-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.recent-wrong-box .rwb-list li {
+  padding: 8px 0;
+  border-bottom: 1px dashed #ddd0b0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 14px;
+}
+.recent-wrong-box .rwb-list li:last-child { border-bottom: 0; }
+.recent-wrong-box .rwb-q {
+  font-family: 'Iowan Old Style', Palatino, serif;
+  color: #2a2620;
+  font-size: 15px;
+  word-break: break-word;
+  flex: 1;
+  min-width: 0;
+}
+.recent-wrong-box .rwb-a {
+  color: #c9392c;
+  font-size: 13px;
+  font-style: italic;
+  text-align: right;
+  white-space: nowrap;
+}
+.recent-wrong-box .rwb-empty {
+  color: #9a9080;
+  font-style: italic;
+  font-size: 13px;
+  text-align: center;
+  padding: 4px 0;
+}
+</style>
+<script>
+// =====================================================
+// 最近一次錯題顯示（從 localStorage 讀歷史紀錄）
+// 工具呼叫 window.RecentWrong.update(toolKey, chapterValue) 來重畫
+// chapterValue 是該工具的章節格式（spelling/vocab: "Chapter 1"; chinese: 數字）
+// =====================================================
+(function() {
+  function lsHistoryKey(u) { return 'studyhub.history.' + u; }
+  
+  function loadHistory(u) {
+    try { return JSON.parse(localStorage.getItem(lsHistoryKey(u)) || '[]'); }
+    catch (e) { return []; }
+  }
+  
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  
+  function formatDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+    const dStart = new Date(d); dStart.setHours(0,0,0,0);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    if (dStart.getTime() === today.getTime()) return '今天 ' + hh + ':' + mm;
+    if (dStart.getTime() === yesterday.getTime()) return '昨天 ' + hh + ':' + mm;
+    return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + hh + ':' + mm;
+  }
+  
+  // 把 wrongList 裡的單筆轉成 { question, answer } 顯示用結構
+  // 不同工具的 wrongList 格式略有差異
+  function normalizeWrong(toolKey, w) {
+    if (typeof w === 'string') return { question: w, answer: '' };
+    if (toolKey === 'spelling') {
+      // { word, userAnswer, defs }
+      return { question: w.defs || w.word || '', answer: w.word || '' };
+    }
+    if (toolKey === 'vocab') {
+      // { word, correctDef, pickedDef }
+      return { question: w.word || '', answer: w.correctDef || '' };
+    }
+    if (toolKey === 'chinese') {
+      // { word: 字 }
+      return { question: w.word || '', answer: '' };
+    }
+    return { question: String(w.word || w.question || ''), answer: '' };
+  }
+  
+  window.RecentWrong = {
+    update(toolKey, chapterValue) {
+      const box = document.getElementById('recent-wrong-box');
+      if (!box) return;
+      const params = new URLSearchParams(location.search);
+      const user = params.get('user') || '';
+      if (!user) {
+        box.style.display = 'none';
+        return;
+      }
+      // chapterValue 對 chinese 是數字 → 需要轉成 "Chapter N" 才能跟 history 比對
+      let chapterStr;
+      if (toolKey === 'chinese') {
+        chapterStr = 'Chapter ' + chapterValue;
+      } else {
+        chapterStr = String(chapterValue || '');
+      }
+      if (!chapterStr) { box.style.display = 'none'; return; }
+      const history = loadHistory(user);
+      // 找這個工具、這個章節的最近一筆紀錄
+      const recs = history.filter(h => h.tool === toolKey && h.chapter === chapterStr);
+      if (recs.length === 0) {
+        box.style.display = 'none';
+        return;
+      }
+      const recent = recs.reduce((a, b) => a.date > b.date ? a : b);
+      const wrongList = Array.isArray(recent.wrongList) ? recent.wrongList : [];
+      const dateStr = formatDate(recent.date);
+      const pct = recent.total > 0 ? Math.round(recent.correct / recent.total * 100) : 0;
+      let html = '<div class="rwb-title">📋 ' + escapeHtml(chapterStr) + ' · 上次錯題</div>';
+      html += '<div class="rwb-meta">' + escapeHtml(dateStr) + ' · ' + recent.correct + '/' + recent.total + '（' + pct + '%）</div>';
+      if (wrongList.length === 0) {
+        html += '<div class="rwb-empty">上次全部答對 ✨</div>';
+      } else {
+        html += '<ul class="rwb-list">';
+        wrongList.forEach(w => {
+          const { question, answer } = normalizeWrong(toolKey, w);
+          html += '<li><span class="rwb-q">' + escapeHtml(question) + '</span>';
+          if (answer) html += '<span class="rwb-a">' + escapeHtml(answer) + '</span>';
+          html += '</li>';
+        });
+        html += '</ul>';
+      }
+      box.innerHTML = html;
+      box.style.display = '';
+    },
+    hide() {
+      const box = document.getElementById('recent-wrong-box');
+      if (box) box.style.display = 'none';
+    }
+  };
+})();
+</script>
+
 </body>
 </html>

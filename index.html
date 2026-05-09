@@ -486,6 +486,74 @@
   }
   .history-table tr:last-child td { border-bottom: 0; }
   .history-table tr:hover td { background: rgba(255,255,255,0.4); }
+  .history-table tr.h-row { cursor: pointer; }
+  .history-table tr.h-row.expanded td { background: rgba(184, 68, 46, 0.05); }
+  .history-table tr.h-row .h-arrow {
+    color: var(--gray);
+    font-size: 11px;
+    margin-right: 6px;
+    display: inline-block;
+    transition: transform 0.15s;
+  }
+  .history-table tr.h-row.expanded .h-arrow { transform: rotate(90deg); color: var(--accent); }
+  .history-table tr.h-detail-row td {
+    padding: 0;
+    background: var(--paper-card-2);
+    border-bottom: 1px solid var(--rule-light);
+  }
+  .history-table tr.h-detail-row .h-detail-inner {
+    padding: 14px 22px 18px;
+  }
+  .history-table tr.h-detail-row .h-detail-title {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 12px;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .history-table tr.h-detail-row .h-detail-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .history-table tr.h-detail-row .h-detail-list li {
+    padding: 6px 0;
+    border-bottom: 1px dashed var(--rule-light);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: baseline;
+    font-size: 13px;
+  }
+  .history-table tr.h-detail-row .h-detail-list li:last-child { border-bottom: 0; }
+  .history-table tr.h-detail-row .hd-q {
+    font-family: 'Iowan Old Style', serif;
+    color: var(--ink);
+    font-size: 14px;
+    flex: 1;
+    min-width: 0;
+    word-break: break-word;
+  }
+  .history-table tr.h-detail-row .hd-a {
+    color: var(--accent);
+    font-style: italic;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .history-table tr.h-detail-row .h-detail-empty {
+    color: var(--gray);
+    font-style: italic;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 13px;
+  }
+  .history-table tr.h-detail-row .h-detail-time {
+    margin-top: 10px;
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 12px;
+    text-align: right;
+  }
   .history-table .h-date {
     color: var(--ink-soft);
     white-space: nowrap;
@@ -1257,20 +1325,39 @@ function renderHistoryTable(history) {
   }
   const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
   const display = showAllHistory ? sorted : sorted.slice(0, HISTORY_PREVIEW);
-  display.forEach(h => {
+  display.forEach((h, idx) => {
     const tool = TOOLS[h.tool] || { name: h.tool, cls: '' };
     const pct = h.total > 0 ? Math.round(h.correct / h.total * 100) : 0;
     const pctCls = pct >= 90 ? 'high' : (pct < 70 ? 'low' : '');
     const perfect = h.wrong === 0 ? ' <span class="h-perfect">★</span>' : '';
     const tr = document.createElement('tr');
+    tr.className = 'h-row';
+    tr.dataset.idx = String(idx);
     tr.innerHTML = `
-      <td class="h-date">${formatDateTime(h.date)}</td>
+      <td class="h-date"><span class="h-arrow">▶</span>${formatDateTime(h.date)}</td>
       <td class="h-tool"><span class="tag ${tool.cls}">${tool.name}</span></td>
       <td>${escapeHtml(h.chapter)}</td>
       <td class="h-score">${h.correct} / ${h.total}${perfect}</td>
       <td class="h-pct ${pctCls}">${pct}%</td>
     `;
     tbody.appendChild(tr);
+    // 展開列（預設隱藏）
+    const detailTr = document.createElement('tr');
+    detailTr.className = 'h-detail-row';
+    detailTr.style.display = 'none';
+    detailTr.innerHTML = `<td colspan="5"><div class="h-detail-inner">${buildHistoryDetailHtml(h)}</div></td>`;
+    tbody.appendChild(detailTr);
+    // 點擊切換展開
+    tr.addEventListener('click', () => {
+      const isOpen = tr.classList.contains('expanded');
+      if (isOpen) {
+        tr.classList.remove('expanded');
+        detailTr.style.display = 'none';
+      } else {
+        tr.classList.add('expanded');
+        detailTr.style.display = '';
+      }
+    });
   });
   const moreBtn = document.getElementById('show-more-btn');
   if (sorted.length > HISTORY_PREVIEW) {
@@ -1279,6 +1366,40 @@ function renderHistoryTable(history) {
   } else {
     moreBtn.style.display = 'none';
   }
+}
+
+function buildHistoryDetailHtml(h) {
+  const wrongList = Array.isArray(h.wrongList) ? h.wrongList : [];
+  let html = '<div class="h-detail-title">錯題清單';
+  if (wrongList.length) html += `（${wrongList.length} 題）`;
+  html += '</div>';
+  if (wrongList.length === 0) {
+    html += '<div class="h-detail-empty">這次全部答對 ✨</div>';
+  } else {
+    html += '<ul class="h-detail-list">';
+    wrongList.forEach(w => {
+      let q = '', a = '';
+      if (typeof w === 'string') { q = w; }
+      else if (h.tool === 'spelling') {
+        q = w.defs || w.word || ''; a = w.word || '';
+      } else if (h.tool === 'vocab') {
+        q = w.word || ''; a = w.correctDef || '';
+      } else if (h.tool === 'chinese') {
+        q = w.word || '';
+      } else {
+        q = String(w.word || w.question || '');
+      }
+      html += '<li><span class="hd-q">' + escapeHtml(q) + '</span>';
+      if (a) html += '<span class="hd-a">' + escapeHtml(a) + '</span>';
+      html += '</li>';
+    });
+    html += '</ul>';
+  }
+  // 加上完成時間（如果有）
+  if (typeof h.durationSeconds === 'number' && h.durationSeconds > 0) {
+    html += '<div class="h-detail-time">完成時間：' + formatDuration(h.durationSeconds) + '</div>';
+  }
+  return html;
 }
 document.getElementById('show-more-btn').addEventListener('click', () => {
   showAllHistory = !showAllHistory;

@@ -163,6 +163,28 @@
     letter-spacing: 2px;
     font-weight: bold;
   }
+
+  /* REVIEW 輪標籤 */
+  .round-tag {
+    position: absolute;
+    top: 32px;
+    left: 40px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    padding: 6px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    background: var(--paper);
+    display: none;
+  }
+  .round-tag.show { display: inline-block; }
+  .round-tag.review {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
   .counter .c-correct { color: var(--green); }
   .counter .c-wrong { color: var(--red); }
   .counter .c-sep { color: var(--ink-soft); margin: 0 4px; }
@@ -536,6 +558,7 @@
       top: 30px;
       font-size: 18px;
     }
+    .round-tag { top: 16px; left: 16px; font-size: 11px; padding: 4px 8px; }
   }
   .result-overlay.show { display: flex; }
   .result-overlay h2 {
@@ -777,6 +800,7 @@
     
     <div class="status-line" id="load-status"></div>
     <div class="err" id="load-err-visible"></div>
+    <div id="recent-wrong-box" class="recent-wrong-box" style="display:none"></div>
   </div>
   
   <!-- 隱藏：保留 DOM 但不再用 -->
@@ -787,6 +811,7 @@
 
 <div class="stage">
   <div class="title">中文發音測驗</div>
+  <div class="round-tag" id="round-tag">FIRST ROUND</div>
   <div class="counter">
     <span class="c-correct" id="c-correct">00</span><span class="c-sep">/</span><span class="c-wrong" id="c-wrong">00</span><span class="c-sep">/</span><span id="c-total">00</span>
   </div>
@@ -860,7 +885,6 @@
   <div class="percent" id="r-percent"></div>
   <div style="display:flex; gap:14px; margin-top:8px; flex-wrap:wrap; justify-content:center;">
     <button id="restart-btn">再做一次</button>
-    <button id="retry-wrong-btn" style="background:transparent; color:var(--red); border:1.5px solid var(--red); display:none;">只考錯題</button>
     <button id="change-chapter-btn" style="background:transparent; color:var(--ink); border:1.5px solid var(--ink);">換章節</button>
   </div>
 </div>
@@ -1117,6 +1141,8 @@ let questions = [];
 let qIndex = 0;
 let stats = { correct: 0, wrong: 0, total: 0 };
 let wrongChars = [];           // 本次答錯的字（按順序）
+let reviewQueue = [];          // REVIEW 輪要重考的字
+let isReviewRound = false;
 let recognition = null;
 let isRecognizing = false;
 let isLocked = false;
@@ -1521,6 +1547,17 @@ function renderChapterButtons() {
       }
     }
   } catch (e) {}
+
+  // 顯示該章節的最近一次錯題
+  if (window.RecentWrong) {
+    window.RecentWrong.update('chinese', select.value);
+  }
+  // 切章節時也要更新
+  select.addEventListener('change', () => {
+    if (window.RecentWrong) {
+      window.RecentWrong.update('chinese', select.value);
+    }
+  });
 }
 
 // === 從使用者上傳的檔案讀取 ===
@@ -1663,17 +1700,25 @@ function setupRecognition() {
 }
 
 function startQuiz(charsOverride) {
-  // charsOverride：選填——指定字陣列（用於重考錯題）。
+  // charsOverride：選填——指定字陣列。
   // 不傳就用 currentChapterChars。每次都重新洗牌。
   const source = (charsOverride && charsOverride.length > 0) ? charsOverride : currentChapterChars;
-  const isRetryWrong = !!(charsOverride && charsOverride.length > 0);
   questions = shuffle(source).slice(0);
   qIndex = 0;
   stats = { correct: 0, wrong: 0, total: questions.length };
   wrongChars = [];
-  // 記錄考試開始時間（手動模式不計、重考錯題時也只用最初的時間，但因為手動模式之外都會 reset，這裡簡化：每次正常 startQuiz 都更新；重考錯題不更新）
-  if (!manualMode && !isRetryWrong) {
+  reviewQueue = [];
+  isReviewRound = false;
+  // 記錄考試開始時間（手動模式不計）
+  if (!manualMode) {
     window.__quizStartTime = Date.now();
+  }
+  // 重置 round tag
+  const rt = document.getElementById('round-tag');
+  if (rt) {
+    rt.textContent = 'FIRST ROUND';
+    rt.classList.remove('review');
+    rt.classList.toggle('show', !manualMode);
   }
   document.getElementById('result-overlay').classList.remove('show');
   shouldKeepListening = !manualMode;
@@ -1724,6 +1769,22 @@ function shuffle(arr) {
 
 function renderQuestion() {
   if (qIndex >= questions.length) {
+    // 第一輪結束：如果有錯題且不在 REVIEW 輪，就進 REVIEW 輪
+    if (!isReviewRound && reviewQueue.length > 0 && !manualMode) {
+      isReviewRound = true;
+      questions = shuffle(reviewQueue).slice(0);
+      qIndex = 0;
+      reviewQueue = [];
+      // 更新 round tag
+      const rt = document.getElementById('round-tag');
+      if (rt) {
+        rt.textContent = `REVIEW · ${questions.length} 題`;
+        rt.classList.add('review', 'show');
+      }
+      // 短暫延遲再渲染下一題（讓 round tag 變化感被看到）
+      setTimeout(renderQuestion, 100);
+      return;
+    }
     shouldKeepListening = false;
     showResult();
     return;
@@ -1865,14 +1926,17 @@ function handleAnswer(alternatives) {
   
   if (matched) {
     document.body.classList.add('correct-flash');
-    stats.correct++;
+    if (!isReviewRound) stats.correct++;
     playCorrectSound();
     micLabel.textContent = '✓ 答對';
     addToHistory(target, false);
   } else {
     document.body.classList.add('wrong-flash');
-    stats.wrong++;
-    wrongChars.push(target);
+    if (!isReviewRound) {
+      stats.wrong++;
+      wrongChars.push(target);
+      reviewQueue.push(target);  // 加入 REVIEW 輪
+    }
     playWrongSound();
     micLabel.textContent = '✗ 答錯';
     addToHistory(target, true);
@@ -1929,13 +1993,6 @@ function showResult() {
   // 正確百分比
   const pct = stats.total > 0 ? (stats.correct / stats.total * 100).toFixed(1) : '0.0';
   document.getElementById('r-percent').textContent = `正確率 ${pct}%`;
-  
-  // 「只考錯題」按鈕——有錯題且不是手動模式才顯示
-  const retryBtn = document.getElementById('retry-wrong-btn');
-  retryBtn.style.display = (wrongChars.length > 0 && !manualMode) ? '' : 'none';
-  if (wrongChars.length > 0) {
-    retryBtn.textContent = `只考錯題 (${wrongChars.length})`;
-  }
 
   // === 寫入學習中心歷史紀錄（手動模式不存）===
   if (!manualMode && window.QuizHistory && window.QuizHistory.enabled
@@ -1968,14 +2025,6 @@ document.getElementById('restart-btn').addEventListener('click', () => {
   startQuiz();
 });
 
-document.getElementById('retry-wrong-btn').addEventListener('click', () => {
-  // 只考剛才答錯的字（重新洗牌）
-  const toRetry = wrongChars.slice();  // 複製
-  if (toRetry.length === 0) return;
-  document.getElementById('result-overlay').classList.remove('show');
-  startQuiz(toRetry);
-});
-
 document.getElementById('change-chapter-btn').addEventListener('click', () => {
   // 回到開始畫面選擇章節
   document.getElementById('result-overlay').classList.remove('show');
@@ -1990,5 +2039,173 @@ document.getElementById('change-chapter-btn').addEventListener('click', () => {
   startOverlay.classList.remove('hidden');
 });
 </script>
+<style>
+.recent-wrong-box {
+  margin-top: 22px;
+  padding: 18px 20px;
+  background: rgba(184, 68, 46, 0.05);
+  border: 1px solid #d8b8a8;
+  border-radius: 3px;
+}
+.recent-wrong-box .rwb-title {
+  font-family: 'Didot', 'Bodoni 72', serif;
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: #5a5048;
+  margin-bottom: 4px;
+}
+.recent-wrong-box .rwb-meta {
+  font-style: italic;
+  font-size: 12px;
+  color: #9a9080;
+  margin-bottom: 12px;
+  letter-spacing: 1px;
+}
+.recent-wrong-box .rwb-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.recent-wrong-box .rwb-list li {
+  padding: 8px 0;
+  border-bottom: 1px dashed #ddd0b0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 14px;
+}
+.recent-wrong-box .rwb-list li:last-child { border-bottom: 0; }
+.recent-wrong-box .rwb-q {
+  font-family: 'Iowan Old Style', Palatino, serif;
+  color: #2a2620;
+  font-size: 15px;
+  word-break: break-word;
+  flex: 1;
+  min-width: 0;
+}
+.recent-wrong-box .rwb-a {
+  color: #c9392c;
+  font-size: 13px;
+  font-style: italic;
+  text-align: right;
+  white-space: nowrap;
+}
+.recent-wrong-box .rwb-empty {
+  color: #9a9080;
+  font-style: italic;
+  font-size: 13px;
+  text-align: center;
+  padding: 4px 0;
+}
+</style>
+<script>
+// =====================================================
+// 最近一次錯題顯示（從 localStorage 讀歷史紀錄）
+// 工具呼叫 window.RecentWrong.update(toolKey, chapterValue) 來重畫
+// chapterValue 是該工具的章節格式（spelling/vocab: "Chapter 1"; chinese: 數字）
+// =====================================================
+(function() {
+  function lsHistoryKey(u) { return 'studyhub.history.' + u; }
+  
+  function loadHistory(u) {
+    try { return JSON.parse(localStorage.getItem(lsHistoryKey(u)) || '[]'); }
+    catch (e) { return []; }
+  }
+  
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+  
+  function formatDate(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+    const dStart = new Date(d); dStart.setHours(0,0,0,0);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    if (dStart.getTime() === today.getTime()) return '今天 ' + hh + ':' + mm;
+    if (dStart.getTime() === yesterday.getTime()) return '昨天 ' + hh + ':' + mm;
+    return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + hh + ':' + mm;
+  }
+  
+  // 把 wrongList 裡的單筆轉成 { question, answer } 顯示用結構
+  // 不同工具的 wrongList 格式略有差異
+  function normalizeWrong(toolKey, w) {
+    if (typeof w === 'string') return { question: w, answer: '' };
+    if (toolKey === 'spelling') {
+      // { word, userAnswer, defs }
+      return { question: w.defs || w.word || '', answer: w.word || '' };
+    }
+    if (toolKey === 'vocab') {
+      // { word, correctDef, pickedDef }
+      return { question: w.word || '', answer: w.correctDef || '' };
+    }
+    if (toolKey === 'chinese') {
+      // { word: 字 }
+      return { question: w.word || '', answer: '' };
+    }
+    return { question: String(w.word || w.question || ''), answer: '' };
+  }
+  
+  window.RecentWrong = {
+    update(toolKey, chapterValue) {
+      const box = document.getElementById('recent-wrong-box');
+      if (!box) return;
+      const params = new URLSearchParams(location.search);
+      const user = params.get('user') || '';
+      if (!user) {
+        box.style.display = 'none';
+        return;
+      }
+      // chapterValue 對 chinese 是數字 → 需要轉成 "Chapter N" 才能跟 history 比對
+      let chapterStr;
+      if (toolKey === 'chinese') {
+        chapterStr = 'Chapter ' + chapterValue;
+      } else {
+        chapterStr = String(chapterValue || '');
+      }
+      if (!chapterStr) { box.style.display = 'none'; return; }
+      const history = loadHistory(user);
+      // 找這個工具、這個章節的最近一筆紀錄
+      const recs = history.filter(h => h.tool === toolKey && h.chapter === chapterStr);
+      if (recs.length === 0) {
+        box.style.display = 'none';
+        return;
+      }
+      const recent = recs.reduce((a, b) => a.date > b.date ? a : b);
+      const wrongList = Array.isArray(recent.wrongList) ? recent.wrongList : [];
+      const dateStr = formatDate(recent.date);
+      const pct = recent.total > 0 ? Math.round(recent.correct / recent.total * 100) : 0;
+      let html = '<div class="rwb-title">📋 ' + escapeHtml(chapterStr) + ' · 上次錯題</div>';
+      html += '<div class="rwb-meta">' + escapeHtml(dateStr) + ' · ' + recent.correct + '/' + recent.total + '（' + pct + '%）</div>';
+      if (wrongList.length === 0) {
+        html += '<div class="rwb-empty">上次全部答對 ✨</div>';
+      } else {
+        html += '<ul class="rwb-list">';
+        wrongList.forEach(w => {
+          const { question, answer } = normalizeWrong(toolKey, w);
+          html += '<li><span class="rwb-q">' + escapeHtml(question) + '</span>';
+          if (answer) html += '<span class="rwb-a">' + escapeHtml(answer) + '</span>';
+          html += '</li>';
+        });
+        html += '</ul>';
+      }
+      box.innerHTML = html;
+      box.style.display = '';
+    },
+    hide() {
+      const box = document.getElementById('recent-wrong-box');
+      if (box) box.style.display = 'none';
+    }
+  };
+})();
+</script>
+
 </body>
 </html>
