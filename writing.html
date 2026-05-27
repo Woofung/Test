@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>寫作測驗 Writing Quiz</title>
+<style>
+  :root {
+    --paper: #f4ede0;
+    --paper-dark: #e8dcc4;
+    --paper-card: #faf5e8;
+    --paper-card-2: #fbf8ed;
+    --ink: #2a2620;
+    --ink-soft: #5a5048;
+    --rule: #c9bfa8;
+    --rule-light: #ddd0b0;
+    --accent: #b8442e;
+    --green: #4a7c3a;
+    --green-bg: #7fb069;
+    --red: #c9392c;
+    --red-bg: #e07856;
+    --yellow: #c8a84a;
+    --blue: #4a6f8a;
+    --purple: #8a5a8a;
+    --gray: #9a9080;
+    --narrative: #4a7c3a;
+    --opinion:   #a06234;
+    --informational: #3a6f7a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    min-height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      repeating-linear-gradient(transparent 0, transparent 38px, rgba(180,160,120,0.06) 38px, rgba(180,160,120,0.06) 39px);
+    z-index: 0;
+  }
+
+  /* ====== Common ====== */
+  .hidden { display: none !important; }
+
+  /* ====== Back button (top-left) ====== */
+  .back-home {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 60;
+    font-family: 'Iowan Old Style', Palatino, serif;
+    font-size: 13px;
+    letter-spacing: 1px;
+    color: var(--ink-soft);
+    background: rgba(244, 237, 224, 0.85);
+    padding: 6px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+    text-decoration: none;
+    backdrop-filter: blur(4px);
+  }
+  .back-home:hover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  /* ====== Setup screen ====== */
+  #setup-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .setup-card {
+    max-width: 520px;
+    width: 100%;
+    background: var(--paper-card);
+    border: 1.5px solid var(--ink);
+    padding: 36px 32px 30px;
+    text-align: center;
+    position: relative;
+  }
+  .setup-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--tool-color, var(--accent));
+  }
+  .setup-card h1 {
+    font-family: 'Didot', 'Bodoni 72', 'Hoefler Text', serif;
+    font-size: 36px;
+    font-weight: 400;
+    letter-spacing: -0.5px;
+    margin-bottom: 6px;
+    color: var(--tool-color, var(--ink));
+  }
+  .setup-card .subtitle {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 14px;
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+  }
+  .setup-card .slot-info {
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+    padding: 10px 14px;
+    background: var(--paper);
+    border: 1px dashed var(--rule);
+    border-radius: 2px;
+  }
+  .setup-card .slot-info b {
+    font-family: 'Didot', serif;
+    color: var(--ink);
+    font-weight: 400;
+    font-size: 18px;
+    margin: 0 4px;
+  }
+  .setup-card .full-warning {
+    color: var(--accent);
+    font-style: italic;
+    margin: 12px 0 0;
+    font-size: 14px;
+  }
+  .duration-row {
+    margin-bottom: 24px;
+    text-align: left;
+  }
+  .duration-row label {
+    display: block;
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 13px;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .duration-row select {
+    width: 100%;
+    padding: 14px 16px;
+    font-family: 'Iowan Old Style', serif;
+    font-size: 18px;
+    border: 1.5px solid var(--ink);
+    background: var(--paper);
+    border-radius: 2px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+  .draft-resume-card {
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: rgba(184, 168, 74, 0.12);
+    border: 1px dashed var(--yellow);
+    border-radius: 2px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: left;
+  }
+  .draft-resume-card b { color: var(--ink); font-family: 'Didot', serif; font-weight: 400; }
+  .draft-resume-card .draft-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+  }
+  .draft-resume-card .draft-actions button {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    padding: 6px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .draft-resume-card .draft-actions button.primary {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  .start-btn {
+    width: 100%;
+    background: var(--tool-color, var(--ink));
+    border: 1.5px solid var(--tool-color, var(--ink));
+    color: var(--paper);
+    padding: 16px 18px;
+    font-family: 'Didot', serif;
+    font-size: 18px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+  .start-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 0 var(--ink);
+  }
+  .start-btn:disabled {
+    background: var(--gray);
+    border-color: var(--gray);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* ====== Exam / Review screen ====== */
+  #exam-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+  }
+  .exam-header {
+    border-bottom: 1.5px solid var(--ink);
+    padding: 14px 24px 12px 70px;
+    background: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .exam-title {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .exam-title h1 {
+    font-family: 'Didot', serif;
+    font-size: 24px;
+    font-weight: 400;
+    letter-spacing: 1.5px;
+    color: var(--tool-color, var(--ink));
+  }
+  .exam-title .ex-en {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+  .exam-title .ex-slot {
+    font-family: 'Didot', serif;
+    color: var(--ink-soft);
+    font-size: 14px;
+    letter-spacing: 1px;
+    border-left: 1px solid var(--rule);
+    padding-left: 12px;
+  }
+
+  /* === Timer === */
+  .timer-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .timer-display {
+    font-family: 'Didot', 'Courier New', monospace;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: var(--ink);
+    background: var(--paper-card);
+    border: 1.5px solid var(--ink);
+    padding: 6px 18px;
+    border-radius: 2px;
+    min-width: 120px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer-display.warning { color: var(--accent); border-color: var(--accent); }
+  .timer-display.ended {
+    color: white;
+    background: var(--red);
+    border-color: var(--red);
+    animation: blink 0.6s infinite;
+  }
+  @keyframes blink {
+    50% { opacity: 0.4; }
+  }
+  .timer-meta {
+    font-style: italic;
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 1px;
+    text-align: right;
+  }
+  .timer-meta .ended-text { color: var(--accent); font-style: normal; }
+
+  /* === Main 3-column layout: 1/4 | 2/4 | 1/4 === */
+  .exam-main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 18px;
+    padding: 18px 24px 24px;
+    min-height: 0;
+  }
+  .pane {
+    background: var(--paper-card);
+    border: 1px solid var(--rule);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    min-height: 60vh;
+    position: relative;
+  }
+  .pane-label {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 11px;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed var(--rule-light);
+    flex-shrink: 0;
+  }
+
+  /* Prompt pane — vertically centered content */
+  .prompt-pane .prompt-content {
+    flex: 1;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 18px 12px;
+    font-family: 'Iowan Old Style', 'Palatino Linotype', serif;
+    font-size: 17px;
+    line-height: 1.7;
+    color: var(--ink);
+    outline: none;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-y: auto;
+  }
+  .prompt-pane .prompt-content[contenteditable="true"]:empty::before {
+    content: '請貼上題目 (Paste prompt here)';
+    color: var(--gray);
+    font-style: italic;
+  }
+  .prompt-pane .prompt-content[contenteditable="true"]:focus {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 2px;
+  }
+  .prompt-pane .prompt-content.locked {
+    cursor: default;
+  }
+
+  /* Essay pane (middle) */
+  .essay-pane textarea {
+    flex: 1;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    resize: none;
+    font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--ink);
+    padding: 6px 4px;
+    outline: none;
+    min-height: 60vh;
+  }
+  .essay-pane textarea::placeholder { color: var(--gray); font-style: italic; }
+  .essay-pane textarea:disabled {
+    color: var(--ink);
+    -webkit-text-fill-color: var(--ink); /* iOS Safari */
+    opacity: 1;
+    cursor: default;
+  }
+  .essay-meta {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-style: italic;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+    border-top: 1px dashed var(--rule-light);
+    padding-top: 8px;
+  }
+  .essay-meta .word-count {
+    font-family: 'Didot', serif;
+    font-style: normal;
+    color: var(--ink);
+  }
+  .essay-meta .save-status {
+    color: var(--gray);
+  }
+  .essay-meta .save-status.saved { color: var(--green); }
+
+  /* Comment pane (right) — empty during exam, shows comment box in review */
+  .comment-pane.empty-during-exam {
+    background: transparent;
+    border: 1px dashed var(--rule-light);
+  }
+  .comment-pane.empty-during-exam .pane-label {
+    border-bottom: 0;
+    color: var(--gray);
+  }
+  .comment-pane.empty-during-exam .comment-placeholder {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray);
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 1px;
+    text-align: center;
+    padding: 20px;
+  }
+  .comment-pane textarea {
+    flex: 1;
+    width: 100%;
+    border: 1px solid var(--rule);
+    background: white;
+    resize: none;
+    font-family: 'Iowan Old Style', serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink);
+    padding: 10px 12px;
+    outline: none;
+    min-height: 200px;
+    border-radius: 2px;
+  }
+  .comment-pane textarea:focus { border-color: var(--ink); }
+  .comment-save-row {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .comment-save-row button {
+    background: var(--ink);
+    color: var(--paper);
+    border: 1px solid var(--ink);
+    padding: 9px 18px;
+    font-family: 'Didot', serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .comment-save-row button:hover { background: var(--accent); border-color: var(--accent); }
+  .comment-save-row .comment-saved-msg {
+    font-size: 12px;
+    color: var(--green);
+    font-style: italic;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .comment-save-row .comment-saved-msg.show { opacity: 1; }
+
+  /* === Footer with submit / status === */
+  .exam-footer {
+    padding: 14px 24px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    border-top: 1px solid var(--rule-light);
+    background: var(--paper);
+    flex-wrap: wrap;
+  }
+  .exam-footer .footer-info {
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+  .exam-footer .footer-info b {
+    font-family: 'Didot', serif;
+    color: var(--ink);
+    font-weight: 400;
+    font-style: normal;
+  }
+  .footer-actions { display: flex; gap: 10px; align-items: center; }
+  .submit-btn {
+    background: transparent;
+    border: 1.5px solid var(--ink);
+    color: var(--ink);
+    padding: 10px 22px;
+    font-family: 'Didot', serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 2px;
+  }
+  .submit-btn:hover {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .submit-btn.primary {
+    background: var(--tool-color, var(--ink));
+    border-color: var(--tool-color, var(--ink));
+    color: var(--paper);
+  }
+  .submit-btn.primary:hover {
+    filter: brightness(0.92);
+  }
+
+  /* === When time is up: red border around the whole thing === */
+  body.time-up::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    border: 6px solid var(--red);
+    pointer-events: none;
+    z-index: 99;
+    animation: redPulse 1.2s ease-in-out 3;
+  }
+  @keyframes redPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* === Submitted overlay === */
+  #submitted-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(42, 38, 32, 0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 90;
+    padding: 20px;
+  }
+  #submitted-overlay.show { display: flex; }
+  .submitted-card {
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    padding: 36px 36px 28px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+  }
+  .submitted-card .sub-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+  }
+  .submitted-card h2 {
+    font-family: 'Didot', serif;
+    font-size: 28px;
+    font-weight: 400;
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+  }
+  .submitted-card .sub-info {
+    color: var(--ink-soft);
+    font-style: italic;
+    margin-bottom: 22px;
+    line-height: 1.6;
+    font-size: 14px;
+  }
+  .submitted-card .sub-actions { display: flex; gap: 10px; }
+  .submitted-card .sub-actions button {
+    flex: 1;
+    padding: 12px;
+    font-family: 'Didot', serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 2px;
+    border: 1.5px solid var(--ink);
+  }
+  .submitted-card .sub-actions .primary {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .submitted-card .sub-actions .primary:hover { background: var(--accent); border-color: var(--accent); }
+  .submitted-card .sub-actions .secondary {
+    background: transparent;
+    color: var(--ink);
+  }
+  .submitted-card .sub-actions .secondary:hover { background: var(--paper-card); }
+
+  /* === Review badge === */
+  .review-banner {
+    background: var(--paper-dark);
+    border-bottom: 1px solid var(--rule);
+    padding: 10px 24px 10px 70px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    font-style: italic;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .review-banner b { color: var(--ink); font-family: 'Didot', serif; font-weight: 400; font-style: normal; }
+  .review-banner .review-tag {
+    display: inline-block;
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 10px;
+    letter-spacing: 2px;
+    font-style: normal;
+  }
+
+  /* ====== Responsive ====== */
+  @media (max-width: 900px) {
+    .exam-header { padding: 14px 16px 12px 64px; }
+    .review-banner { padding-left: 64px; }
+    .exam-main {
+      grid-template-columns: 1fr;
+      gap: 14px;
+      padding: 16px;
+    }
+    .pane { min-height: auto; }
+    .essay-pane textarea { min-height: 40vh; }
+    .timer-display { font-size: 22px; padding: 5px 14px; min-width: 100px; }
+    .exam-title h1 { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="back-home" id="back-home-link" href="index.html">← 學習中心</a>
+
+<!-- ====== Setup screen (before exam starts) ====== -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <h1 id="setup-title">寫作測驗</h1>
+    <div class="subtitle" id="setup-subtitle">Writing</div>
+
+    <div class="slot-info">
+      使用者：<b id="setup-user">—</b>　·　即將寫第 <b id="setup-slot">—</b> 篇
+    </div>
+
+    <div class="duration-row">
+      <label for="duration-select">考試時間 Duration</label>
+      <select id="duration-select"></select>
+    </div>
+
+    <div id="draft-resume" class="draft-resume-card hidden">
+      <div>偵測到 <b>未完成的草稿</b>（上次離開時尚未交卷）。</div>
+      <div style="margin-top:4px; font-size:12px; color:var(--ink-soft);">
+        <span id="draft-info"></span>
+      </div>
+      <div class="draft-actions">
+        <button id="draft-discard">捨棄草稿，從新開始</button>
+        <button class="primary" id="draft-resume-btn">繼續未完成的測驗</button>
+      </div>
+    </div>
+
+    <button class="start-btn" id="start-exam-btn" style="margin-top:8px">→ 開始考試</button>
+    <p class="full-warning hidden" id="full-warning">這個寫作測驗的 40 格已經全部寫完囉。可以從學習中心查看之前的作品。</p>
+  </div>
+</div>
+
+<!-- ====== Exam / Review screen ====== -->
+<div id="exam-screen" class="hidden">
+  <div class="review-banner hidden" id="review-banner">
+    <span class="review-tag">REVIEW</span>
+    <span>檢視 <b id="review-user">—</b> 的 <b id="review-slot">—</b>　·　<span id="review-date">—</span></span>
+  </div>
+
+  <div class="exam-header">
+    <div class="exam-title">
+      <h1 id="exam-title-zh">寫作</h1>
+      <span class="ex-en" id="exam-title-en">Writing</span>
+      <span class="ex-slot" id="exam-slot-label">—</span>
+    </div>
+    <div class="timer-wrap">
+      <div style="display:flex; flex-direction:column; gap:2px;">
+        <div class="timer-display" id="timer-display">--:--</div>
+        <div class="timer-meta" id="timer-meta">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="exam-main">
+    <!-- 1/4 prompt -->
+    <div class="pane prompt-pane">
+      <div class="pane-label">題目 Prompt</div>
+      <div class="prompt-content" id="prompt-content" contenteditable="true"></div>
+    </div>
+    <!-- 2/4 essay -->
+    <div class="pane essay-pane">
+      <div class="pane-label">作文 Essay</div>
+      <textarea id="essay-text" placeholder="開始寫作 / Start writing here..."></textarea>
+      <div class="essay-meta">
+        <span><span class="word-count" id="word-count">0</span> 字</span>
+        <span class="save-status" id="save-status">—</span>
+      </div>
+    </div>
+    <!-- 1/4 comment (empty during exam; visible in review) -->
+    <div class="pane comment-pane empty-during-exam" id="comment-pane">
+      <div class="pane-label">老師評語 Teacher's Comment</div>
+      <div class="comment-placeholder" id="comment-placeholder">
+        — 考試結束後，老師可在此填寫評語 —
+      </div>
+      <textarea id="comment-text" class="hidden" placeholder="請在此填寫評語..."></textarea>
+      <div class="comment-save-row hidden" id="comment-save-row">
+        <button id="comment-save-btn">儲存評語</button>
+        <span class="comment-saved-msg" id="comment-saved-msg">✓ 已儲存</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="exam-footer">
+    <div class="footer-info" id="footer-info">時間到時會自動儲存。</div>
+    <div class="footer-actions">
+      <button class="submit-btn" id="submit-btn">提早交卷</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== Submitted overlay ====== -->
+<div id="submitted-overlay">
+  <div class="submitted-card">
+    <div class="sub-icon">✓</div>
+    <h2>已交卷</h2>
+    <div class="sub-info" id="submitted-info">這篇文章已經儲存，內容無法再修改。</div>
+    <div class="sub-actions">
+      <button class="secondary" id="submitted-review">檢視此篇</button>
+      <button class="primary" id="submitted-back">回學習中心</button>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ===========================================================
+   常數與設定
+   =========================================================== */
+const HOME_URL = 'index.html';
+const TOTAL_SLOTS = 40;
+
+const TYPE_CONFIG = {
+  narrative: {
+    zh: '敘事寫作', en: 'Narrative Writing',
+    color: '#4a7c3a', icon: '✒️'
+  },
+  opinion: {
+    zh: '觀點寫作', en: 'Opinion Writing',
+    color: '#a06234', icon: '💭'
+  },
+  informational: {
+    zh: '資訊寫作', en: 'Informational Writing',
+    color: '#3a6f7a', icon: '📝'
+  }
+};
+
+/* ===========================================================
+   URL 參數
+   =========================================================== */
+const params = new URLSearchParams(location.search);
+const type = (params.get('type') || '').toLowerCase();
+const user = params.get('user') || '';
+const slotParam = params.get('slot');  // 若有 → 進入 review 模式
+
+if (!TYPE_CONFIG[type]) {
+  document.body.innerHTML = '<div style="padding:40px; text-align:center; font-family:serif;">未知的寫作類型。<br><br><a href="' + HOME_URL + '">回學習中心</a></div>';
+  throw new Error('Unknown writing type');
+}
+if (!user) {
+  document.body.innerHTML = '<div style="padding:40px; text-align:center; font-family:serif;">缺少使用者資訊。請從 <a href="' + HOME_URL + '">學習中心</a> 進入。</div>';
+  throw new Error('Missing user');
+}
+
+const cfg = TYPE_CONFIG[type];
+document.documentElement.style.setProperty('--tool-color', cfg.color);
+
+/* ===========================================================
+   localStorage 介面
+   ===========================================================
+   - 歷史紀錄: studyhub.history.<user>  （與既有測驗共用）
+   - 草稿:     studyhub.draft.<user>.<type>.<slot>
+   =========================================================== */
+function lsHistoryKey(u)  { return 'studyhub.history.' + u; }
+function lsDraftKey(u, t, slot) { return 'studyhub.draft.' + u + '.' + t + '.' + slot; }
+function lsLastSyncKey(u) { return 'studyhub.lastSync.' + u; }
+const LS_GIST_CONFIG = 'studyhub.gistConfig';
+
+function loadHistory(u) {
+  try { return JSON.parse(localStorage.getItem(lsHistoryKey(u)) || '[]'); }
+  catch (e) { return []; }
+}
+function saveHistoryArray(u, arr) {
+  localStorage.setItem(lsHistoryKey(u), JSON.stringify(arr));
+}
+function loadGistConfig() {
+  try { return JSON.parse(localStorage.getItem(LS_GIST_CONFIG) || 'null'); }
+  catch (e) { return null; }
+}
+
+/* === 背景推送到 Gist（沿用既有設定，失敗不影響使用者） === */
+async function pushToGist(u) {
+  const c = loadGistConfig();
+  if (!c || !c.gistId || !c.token) return;
+  try {
+    const records = JSON.parse(localStorage.getItem(lsHistoryKey(u)) || '[]');
+    const content = JSON.stringify({
+      version: 1, user: u,
+      updatedAt: new Date().toISOString(),
+      records
+    }, null, 2);
+    const r = await fetch('https://api.github.com/gists/' + c.gistId, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': 'Bearer ' + c.token,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ files: { ['profile-' + encodeURIComponent(u) + '.json']: { content } } })
+    });
+    if (r.ok) {
+      localStorage.setItem(lsLastSyncKey(u), new Date().toISOString());
+    }
+  } catch (e) {
+    console.warn('Gist push error:', e);
+  }
+}
+
+/* ===========================================================
+   狀態
+   =========================================================== */
+let mode = 'setup';      // 'setup' | 'exam' | 'review' | 'submitted'
+let activeSlot = null;   // 目前正在寫的格號
+let plannedMinutes = 30;
+let timerInterval = null;
+let timerEndAt = null;   // unix ms
+let timerRemainSec = 0;
+let isLocked = false;
+let draftSaveInterval = null;
+let beepPlayed = false;
+let reviewRecord = null; // 當 mode = 'review' 時，這裡會有那筆歷史紀錄
+
+/* ===========================================================
+   工具
+   =========================================================== */
+function $(id) { return document.getElementById(id); }
+function pad(n) { return String(n).padStart(2, '0'); }
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function countWords(s) {
+  if (!s) return 0;
+  // 英文用空白切；中文一個字算一個
+  const trimmed = s.trim();
+  if (!trimmed) return 0;
+  // 偵測 CJK
+  const cjk = trimmed.match(/[㐀-鿿豈-﫿]/g);
+  const cjkCount = cjk ? cjk.length : 0;
+  const remaining = trimmed.replace(/[㐀-鿿豈-﫿]/g, ' ');
+  const enCount = remaining.split(/\s+/).filter(Boolean).length;
+  return cjkCount + enCount;
+}
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mi = pad(d.getMinutes());
+  return `${yyyy}/${mm}/${dd} ${hh}:${mi}`;
+}
+
+/* === Beep（Web Audio API；不需外部檔案） === */
+let audioCtx = null;
+function ensureAudio() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { audioCtx = null; }
+  }
+  return audioCtx;
+}
+function singleBeep(freq, duration, gainVal) {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.frequency.value = freq;
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(gainVal || 0.25, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+  osc.start();
+  osc.stop(ctx.currentTime + duration);
+}
+function playEndBeeps() {
+  if (beepPlayed) return;
+  beepPlayed = true;
+  try {
+    singleBeep(880, 0.22);
+    setTimeout(() => singleBeep(880, 0.22), 320);
+    setTimeout(() => singleBeep(880, 0.45), 640);
+  } catch (e) {}
+}
+
+/* ===========================================================
+   找下一個空格
+   =========================================================== */
+function findFilledSlots() {
+  const hist = loadHistory(user);
+  const set = new Set();
+  hist.forEach(r => {
+    if (r && r.tool === type && r.kind === 'writing' && typeof r.slot === 'number') {
+      set.add(r.slot);
+    }
+  });
+  return set;
+}
+function findNextEmptySlot() {
+  const filled = findFilledSlots();
+  for (let i = 1; i <= TOTAL_SLOTS; i++) {
+    if (!filled.has(i)) return i;
+  }
+  return null;  // 全滿
+}
+
+/* ===========================================================
+   讀取/儲存草稿
+   =========================================================== */
+function loadDraft(slot) {
+  try {
+    const raw = localStorage.getItem(lsDraftKey(user, type, slot));
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { return null; }
+}
+function saveDraft(slot, data) {
+  try { localStorage.setItem(lsDraftKey(user, type, slot), JSON.stringify(data)); }
+  catch (e) {}
+}
+function clearDraft(slot) {
+  try { localStorage.removeItem(lsDraftKey(user, type, slot)); }
+  catch (e) {}
+}
+
+/* ===========================================================
+   Setup 畫面
+   =========================================================== */
+function initSetup() {
+  // 標題
+  $('setup-title').textContent = cfg.icon + ' ' + cfg.zh;
+  $('setup-subtitle').textContent = '— ' + cfg.en + ' —';
+  $('setup-user').textContent = user;
+
+  // 時間下拉（10–90 分鐘，5 分鐘一級）
+  const sel = $('duration-select');
+  sel.innerHTML = '';
+  for (let m = 10; m <= 90; m += 5) {
+    const opt = document.createElement('option');
+    opt.value = String(m);
+    opt.textContent = m + ' 分鐘';
+    if (m === 30) opt.selected = true;
+    sel.appendChild(opt);
+  }
+
+  // 找下一個空格
+  const nextSlot = findNextEmptySlot();
+  if (nextSlot === null) {
+    $('setup-slot').textContent = '—';
+    $('start-exam-btn').disabled = true;
+    $('full-warning').classList.remove('hidden');
+    $('draft-resume').classList.add('hidden');
+    return;
+  }
+  activeSlot = nextSlot;
+  $('setup-slot').textContent = String(nextSlot);
+
+  // 偵測草稿
+  const draft = loadDraft(nextSlot);
+  if (draft) {
+    $('draft-resume').classList.remove('hidden');
+    const wc = countWords(draft.essay || '');
+    const savedAt = draft.savedAt ? fmtDate(draft.savedAt) : '';
+    const remain = typeof draft.remainSec === 'number' ? Math.round(draft.remainSec / 60) : null;
+    $('draft-info').textContent =
+      '已寫 ' + wc + ' 字' +
+      (savedAt ? '　·　最後儲存 ' + savedAt : '') +
+      (remain !== null ? '　·　剩餘時間約 ' + remain + ' 分鐘' : '');
+  } else {
+    $('draft-resume').classList.add('hidden');
+  }
+}
+
+$('start-exam-btn').addEventListener('click', () => {
+  const sel = $('duration-select');
+  plannedMinutes = parseInt(sel.value, 10) || 30;
+  ensureAudio();  // 在使用者互動時建立，避免被瀏覽器擋
+  startExam(plannedMinutes * 60, '', '');
+});
+$('draft-resume-btn').addEventListener('click', () => {
+  const draft = loadDraft(activeSlot);
+  if (!draft) { return; }
+  plannedMinutes = draft.plannedMinutes || 30;
+  ensureAudio();
+  const remain = typeof draft.remainSec === 'number'
+    ? Math.max(1, draft.remainSec)
+    : plannedMinutes * 60;
+  startExam(remain, draft.prompt || '', draft.essay || '');
+});
+$('draft-discard').addEventListener('click', () => {
+  if (!confirm('確定要捨棄上次未完成的草稿？')) return;
+  clearDraft(activeSlot);
+  $('draft-resume').classList.add('hidden');
+});
+
+/* ===========================================================
+   進入考試畫面
+   =========================================================== */
+function startExam(remainSec, initialPrompt, initialEssay) {
+  mode = 'exam';
+  isLocked = false;
+  beepPlayed = false;
+  document.body.classList.remove('time-up');
+
+  $('setup-screen').classList.add('hidden');
+  $('exam-screen').classList.remove('hidden');
+  $('review-banner').classList.add('hidden');
+
+  // 標題
+  $('exam-title-zh').textContent = cfg.icon + ' ' + cfg.zh;
+  $('exam-title-en').textContent = cfg.en;
+  $('exam-slot-label').textContent = '第 ' + activeSlot + ' 篇 / ' + TOTAL_SLOTS;
+
+  // Footer
+  $('footer-info').innerHTML =
+    '計時 <b>' + plannedMinutes + ' 分</b>　·　時間到時會自動儲存並鎖定，無法再修改。';
+
+  // 內容
+  $('prompt-content').textContent = initialPrompt || '';
+  $('essay-text').value = initialEssay || '';
+  $('essay-text').disabled = false;
+  $('prompt-content').setAttribute('contenteditable', 'true');
+  $('prompt-content').classList.remove('locked');
+  updateWordCount();
+
+  // 評語區（考試中保持隱藏）
+  $('comment-pane').classList.add('empty-during-exam');
+  $('comment-text').classList.add('hidden');
+  $('comment-save-row').classList.add('hidden');
+  $('comment-placeholder').classList.remove('hidden');
+
+  // 提早交卷按鈕
+  $('submit-btn').classList.remove('hidden');
+  $('submit-btn').textContent = '提早交卷';
+
+  // 啟動計時
+  timerRemainSec = Math.max(1, Math.floor(remainSec));
+  timerEndAt = Date.now() + timerRemainSec * 1000;
+  startTimer();
+  startDraftAutoSave();
+
+  // back-home 連結帶上 user
+  $('back-home-link').href = HOME_URL + '?user=' + encodeURIComponent(user);
+
+  // 輸入時更新字數
+  $('essay-text').addEventListener('input', updateWordCount);
+  $('prompt-content').addEventListener('input', () => { /* 觸發草稿存檔靠 interval */ });
+
+  // 阻止重整離開（會彈出瀏覽器原生提示）
+  window.addEventListener('beforeunload', beforeUnloadHandler);
+
+  $('essay-text').focus();
+}
+
+function beforeUnloadHandler(e) {
+  if (mode === 'exam' && !isLocked) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  }
+}
+
+function updateWordCount() {
+  const c = countWords($('essay-text').value);
+  $('word-count').textContent = String(c);
+}
+
+/* === 計時器 === */
+function startTimer() {
+  if (timerInterval) clearInterval(timerInterval);
+  renderTimer();
+  timerInterval = setInterval(renderTimer, 250);
+}
+function renderTimer() {
+  if (isLocked) return;
+  const now = Date.now();
+  let remain = Math.round((timerEndAt - now) / 1000);
+  if (remain < 0) remain = 0;
+  timerRemainSec = remain;
+  const m = Math.floor(remain / 60);
+  const s = remain % 60;
+  const td = $('timer-display');
+  td.textContent = pad(m) + ':' + pad(s);
+  td.classList.remove('warning', 'ended');
+  if (remain === 0) {
+    td.classList.add('ended');
+    $('timer-meta').innerHTML = '<span class="ended-text">時間到</span>';
+    triggerTimeUp();
+  } else if (remain <= 60) {
+    td.classList.add('warning');
+    $('timer-meta').textContent = '剩不到 1 分鐘';
+  } else if (remain <= 300) {
+    td.classList.add('warning');
+    $('timer-meta').textContent = '剩餘時間';
+  } else {
+    $('timer-meta').textContent = '剩餘時間';
+  }
+}
+function stopTimer() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+/* === 草稿自動存 === */
+function startDraftAutoSave() {
+  if (draftSaveInterval) clearInterval(draftSaveInterval);
+  draftSaveInterval = setInterval(autoSaveDraft, 3000);
+  autoSaveDraft();  // 先存一次
+}
+function stopDraftAutoSave() {
+  if (draftSaveInterval) { clearInterval(draftSaveInterval); draftSaveInterval = null; }
+}
+function autoSaveDraft() {
+  if (mode !== 'exam' || isLocked) return;
+  const prompt = $('prompt-content').textContent || '';
+  const essay = $('essay-text').value || '';
+  saveDraft(activeSlot, {
+    plannedMinutes,
+    remainSec: timerRemainSec,
+    prompt,
+    essay,
+    savedAt: new Date().toISOString()
+  });
+  const ss = $('save-status');
+  ss.textContent = '已暫存 ' + pad(new Date().getHours()) + ':' + pad(new Date().getMinutes());
+  ss.classList.add('saved');
+}
+
+/* === 時間到 === */
+function triggerTimeUp() {
+  if (isLocked) return;
+  stopTimer();
+  document.body.classList.add('time-up');
+  playEndBeeps();
+  finalizeAndSave('time-up');
+}
+
+/* === 提早交卷 === */
+$('submit-btn').addEventListener('click', () => {
+  if (mode !== 'exam' || isLocked) return;
+  const wc = countWords($('essay-text').value);
+  const promptVal = ($('prompt-content').textContent || '').trim();
+  let msg = '確定要提早交卷嗎？\n\n';
+  msg += '· 題目：' + (promptVal ? (promptVal.length > 40 ? promptVal.slice(0, 40) + '…' : promptVal) : '（空白）') + '\n';
+  msg += '· 字數：' + wc + ' 字\n\n';
+  msg += '交卷後就無法再修改。';
+  if (!confirm(msg)) return;
+  stopTimer();
+  finalizeAndSave('early-submit');
+});
+
+/* === 儲存最終記錄 === */
+function finalizeAndSave(reason) {
+  if (isLocked) return;
+  isLocked = true;
+  stopDraftAutoSave();
+
+  const promptVal = ($('prompt-content').textContent || '').trim();
+  const essayVal = $('essay-text').value || '';
+  const wc = countWords(essayVal);
+  const usedSec = Math.max(0, plannedMinutes * 60 - timerRemainSec);
+
+  // 鎖定 UI
+  $('essay-text').disabled = true;
+  $('prompt-content').setAttribute('contenteditable', 'false');
+  $('prompt-content').classList.add('locked');
+  $('submit-btn').classList.add('hidden');
+  window.removeEventListener('beforeunload', beforeUnloadHandler);
+
+  // 寫入歷史紀錄
+  const record = {
+    tool: type,
+    kind: 'writing',
+    chapter: 'Essay ' + activeSlot,
+    slot: activeSlot,
+    prompt: promptVal,
+    essay: essayVal,
+    wordCount: wc,
+    plannedMinutes,
+    durationSeconds: usedSec,
+    teacherComment: '',
+    correct: 0,
+    wrong: 0,
+    total: 0,
+    date: new Date().toISOString(),
+    endReason: reason
+  };
+  const arr = loadHistory(user);
+  arr.push(record);
+  saveHistoryArray(user, arr);
+  clearDraft(activeSlot);
+  pushToGist(user);  // 背景同步
+
+  // overlay
+  showSubmittedOverlay(record);
+}
+
+function showSubmittedOverlay(record) {
+  mode = 'submitted';
+  const wc = record.wordCount || 0;
+  const mins = Math.round((record.durationSeconds || 0) / 60);
+  $('submitted-info').innerHTML =
+    '已儲存第 <b style="font-family:Didot,serif; font-weight:400">' + record.slot + '</b> 篇　·　共 <b style="font-family:Didot,serif; font-weight:400">' + wc + '</b> 字' +
+    (mins > 0 ? '　·　花費 <b style="font-family:Didot,serif; font-weight:400">' + mins + '</b> 分鐘' : '') +
+    '<br><span style="font-size:12px">內容已鎖定，無法再修改。</span>';
+  $('submitted-overlay').classList.add('show');
+}
+
+$('submitted-back').addEventListener('click', () => {
+  location.href = HOME_URL + '?user=' + encodeURIComponent(user);
+});
+$('submitted-review').addEventListener('click', () => {
+  // 進入剛剛那篇的 review 模式
+  location.href = location.pathname + '?type=' + encodeURIComponent(type) + '&user=' + encodeURIComponent(user) + '&slot=' + encodeURIComponent(activeSlot);
+});
+
+/* ===========================================================
+   Review 模式
+   =========================================================== */
+function initReview(slot) {
+  const hist = loadHistory(user);
+  const rec = hist.find(r => r && r.tool === type && r.kind === 'writing' && r.slot === slot);
+  if (!rec) {
+    document.body.innerHTML = '<div style="padding:40px; text-align:center; font-family:serif;">找不到這篇作文的紀錄。<br><br><a href="' + HOME_URL + '?user=' + encodeURIComponent(user) + '">回學習中心</a></div>';
+    return;
+  }
+  reviewRecord = rec;
+  activeSlot = slot;
+  mode = 'review';
+  isLocked = true;
+
+  $('setup-screen').classList.add('hidden');
+  $('exam-screen').classList.remove('hidden');
+  $('review-banner').classList.remove('hidden');
+
+  // banner
+  $('review-user').textContent = user;
+  $('review-slot').textContent = cfg.zh + ' 第 ' + slot + ' 篇';
+  $('review-date').textContent = fmtDate(rec.date);
+
+  // title
+  $('exam-title-zh').textContent = cfg.icon + ' ' + cfg.zh;
+  $('exam-title-en').textContent = cfg.en;
+  $('exam-slot-label').textContent = '第 ' + slot + ' 篇 / ' + TOTAL_SLOTS;
+
+  // timer 區改成顯示「已完成」狀態
+  $('timer-display').textContent = '✓ 完成';
+  $('timer-display').classList.remove('warning', 'ended');
+  $('timer-display').style.color = cfg.color;
+  $('timer-display').style.borderColor = cfg.color;
+  $('timer-display').style.background = 'transparent';
+  $('timer-display').style.fontSize = '20px';
+  const mins = Math.round((rec.durationSeconds || 0) / 60);
+  $('timer-meta').innerHTML =
+    '<span style="font-style:normal">' + (rec.wordCount || 0) + ' 字</span>' +
+    (mins > 0 ? '　·　花 ' + mins + ' 分' : '');
+
+  // 內容（鎖定）
+  $('prompt-content').textContent = rec.prompt || '';
+  $('prompt-content').setAttribute('contenteditable', 'false');
+  $('prompt-content').classList.add('locked');
+  $('essay-text').value = rec.essay || '';
+  $('essay-text').disabled = true;
+  updateWordCount();
+
+  // 評語面板：顯示 textarea + 儲存按鈕
+  $('comment-pane').classList.remove('empty-during-exam');
+  $('comment-placeholder').classList.add('hidden');
+  $('comment-text').classList.remove('hidden');
+  $('comment-save-row').classList.remove('hidden');
+  $('comment-text').value = rec.teacherComment || '';
+
+  // footer：藏掉提早交卷
+  $('submit-btn').classList.add('hidden');
+  $('footer-info').textContent = '檢視模式 — 內容無法修改，但可以填寫 / 修改老師評語。';
+
+  // back link
+  $('back-home-link').href = HOME_URL + '?user=' + encodeURIComponent(user);
+}
+
+/* 儲存老師評語 */
+$('comment-save-btn').addEventListener('click', () => {
+  if (mode !== 'review' || !reviewRecord) return;
+  const newComment = $('comment-text').value;
+  const hist = loadHistory(user);
+  // 用 date+slot+tool 配對找出該筆紀錄
+  let updated = false;
+  for (let i = 0; i < hist.length; i++) {
+    const r = hist[i];
+    if (r && r.tool === type && r.kind === 'writing' && r.slot === reviewRecord.slot && r.date === reviewRecord.date) {
+      r.teacherComment = newComment;
+      updated = true;
+      break;
+    }
+  }
+  if (updated) {
+    saveHistoryArray(user, hist);
+    reviewRecord.teacherComment = newComment;
+    pushToGist(user);
+    const msg = $('comment-saved-msg');
+    msg.classList.add('show');
+    setTimeout(() => msg.classList.remove('show'), 1800);
+  } else {
+    alert('找不到原始紀錄，儲存失敗');
+  }
+});
+
+/* ===========================================================
+   啟動
+   =========================================================== */
+$('back-home-link').href = HOME_URL + '?user=' + encodeURIComponent(user);
+
+if (slotParam) {
+  const n = parseInt(slotParam, 10);
+  if (n >= 1 && n <= TOTAL_SLOTS) {
+    initReview(n);
+  } else {
+    document.body.innerHTML = '<div style="padding:40px; text-align:center; font-family:serif;">無效的篇號。<br><br><a href="' + HOME_URL + '?user=' + encodeURIComponent(user) + '">回學習中心</a></div>';
+  }
+} else {
+  initSetup();
+}
+</script>
+</body>
+</html>
