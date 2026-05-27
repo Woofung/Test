@@ -24,6 +24,9 @@
     --blue: #4a6f8a;
     --purple: #8a5a8a;
     --gray: #9a9080;
+    --narrative: #4a7c3a;
+    --opinion: #a06234;
+    --informational: #3a6f7a;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -249,6 +252,9 @@
   .tool-section.spelling .ts-title h2 { color: var(--accent); }
   .tool-section.vocab    .ts-title h2 { color: var(--blue); }
   .tool-section.chinese  .ts-title h2 { color: var(--purple); }
+  .tool-section.narrative .ts-title h2 { color: var(--narrative); }
+  .tool-section.opinion   .ts-title h2 { color: var(--opinion); }
+  .tool-section.informational .ts-title h2 { color: var(--informational); }
   .tool-section .ts-title .ts-en {
     font-style: italic;
     color: var(--ink-soft);
@@ -289,6 +295,9 @@
   .tool-section.spelling .ts-start-btn { background: var(--accent); border-color: var(--accent); }
   .tool-section.vocab    .ts-start-btn { background: var(--blue); border-color: var(--blue); }
   .tool-section.chinese  .ts-start-btn { background: var(--purple); border-color: var(--purple); }
+  .tool-section.narrative .ts-start-btn { background: var(--narrative); border-color: var(--narrative); }
+  .tool-section.opinion   .ts-start-btn { background: var(--opinion); border-color: var(--opinion); }
+  .tool-section.informational .ts-start-btn { background: var(--informational); border-color: var(--informational); }
   .tool-section .ts-start-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 3px 0 var(--ink);
@@ -450,6 +459,39 @@
     padding: 14px 0;
   }
 
+  /* === 寫作測驗用：空格灰色 + 不可點 === */
+  .chapter-cell.writing-empty {
+    background: var(--paper-dark);
+    border-color: var(--rule-light);
+    border-style: dashed;
+    color: var(--gray);
+    cursor: not-allowed;
+    pointer-events: none;
+    opacity: 0.75;
+  }
+  /* 寫作測驗用：已完成格子顏色 */
+  .chapter-cell.writing-done {
+    color: white;
+    border-style: solid;
+  }
+  .chapter-cell.writing-done.narrative {
+    background: var(--narrative);
+    border-color: var(--narrative);
+  }
+  .chapter-cell.writing-done.opinion {
+    background: var(--opinion);
+    border-color: var(--opinion);
+  }
+  .chapter-cell.writing-done.informational {
+    background: var(--informational);
+    border-color: var(--informational);
+  }
+  /* hover 增強 */
+  .chapter-cell.writing-done:hover {
+    filter: brightness(1.1);
+    transform: scale(1.12);
+  }
+
   /* ====== 歷史紀錄 ====== */
   .history-section {
     margin-bottom: 40px;
@@ -589,6 +631,90 @@
   .tag.spelling { background: rgba(184, 68, 46, 0.12); color: var(--accent); }
   .tag.vocab    { background: rgba(74, 111, 138, 0.12); color: var(--blue); }
   .tag.chinese  { background: rgba(138, 90, 138, 0.12); color: var(--purple); }
+  .tag.narrative      { background: rgba(74, 124, 58, 0.12); color: var(--narrative); }
+  .tag.opinion        { background: rgba(160, 98, 52, 0.12); color: var(--opinion); }
+  .tag.informational  { background: rgba(58, 111, 122, 0.12); color: var(--informational); }
+
+  /* === 寫作紀錄展開 === */
+  .h-writing-block {
+    margin-top: 6px;
+  }
+  .h-writing-block .hw-label {
+    font-style: italic;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+    margin-top: 12px;
+  }
+  .h-writing-block .hw-label:first-child { margin-top: 0; }
+  .h-writing-block .hw-prompt {
+    background: var(--paper);
+    border: 1px dashed var(--rule);
+    padding: 10px 14px;
+    font-family: 'Iowan Old Style', serif;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+    border-radius: 2px;
+  }
+  .h-writing-block .hw-essay {
+    background: white;
+    border: 1px solid var(--rule);
+    padding: 12px 14px;
+    font-family: 'Iowan Old Style', serif;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+    border-radius: 2px;
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  .h-writing-block .hw-comment {
+    background: rgba(200, 168, 74, 0.10);
+    border: 1px solid var(--yellow);
+    padding: 10px 14px;
+    font-family: 'Iowan Old Style', serif;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink);
+    font-style: italic;
+    white-space: pre-wrap;
+    word-break: break-word;
+    border-radius: 2px;
+  }
+  .h-writing-block .hw-empty {
+    color: var(--gray);
+    font-style: italic;
+    font-size: 12px;
+  }
+  .h-writing-block .hw-meta {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-style: italic;
+    text-align: right;
+  }
+  .h-writing-block .hw-open-btn {
+    display: inline-block;
+    margin-top: 10px;
+    background: transparent;
+    border: 1px solid var(--ink);
+    color: var(--ink);
+    padding: 6px 14px;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    border-radius: 2px;
+    text-decoration: none;
+  }
+  .h-writing-block .hw-open-btn:hover { background: var(--ink); color: var(--paper); }
 
   .show-more-btn {
     display: block;
@@ -876,8 +1002,45 @@ const TOOLS = {
     url: 'chinese.html',
     cls: 'chinese',
     excelSource: 'chars',
-  }
+  },
+  /* ====== 寫作測驗（共用 writing.html，靠 ?type= 區分） ====== */
+  narrative: {
+    name: 'Narrative Writing',
+    nameEn: '敘事寫作',
+    icon: '✒️',
+    desc: '寫一段故事',
+    url: 'writing.html?type=narrative',
+    cls: 'narrative',
+    kind: 'writing',
+    slots: 40,
+  },
+  opinion: {
+    name: 'Opinion Writing',
+    nameEn: '觀點寫作',
+    icon: '💭',
+    desc: '陳述你的看法',
+    url: 'writing.html?type=opinion',
+    cls: 'opinion',
+    kind: 'writing',
+    slots: 40,
+  },
+  informational: {
+    name: 'Informational Writing',
+    nameEn: '資訊寫作',
+    icon: '📝',
+    desc: '提供說明與資訊',
+    url: 'writing.html?type=informational',
+    cls: 'informational',
+    kind: 'writing',
+    slots: 40,
+  },
 };
+
+/* URL 帶參數：自動判斷要用 ? 還是 & */
+function appendUrlParam(url, key, value) {
+  const sep = url.indexOf('?') >= 0 ? '&' : '?';
+  return url + sep + key + '=' + encodeURIComponent(value);
+}
 
 const HISTORY_PREVIEW = 10;
 
@@ -1198,6 +1361,65 @@ async function renderToolSections(user, history) {
   };
   Object.entries(TOOLS).forEach(([toolKey, tool]) => {
     const recs = history.filter(h => h.tool === toolKey);
+
+    // ===== 寫作測驗：用固定 40 格 =====
+    if (tool.kind === 'writing') {
+      const totalCount = tool.slots || 40;
+      const filledSlots = new Set();
+      const slotInfo = {};  // slot -> { date, wordCount, hasComment }
+      recs.forEach(r => {
+        if (r.kind === 'writing' && typeof r.slot === 'number') {
+          filledSlots.add(r.slot);
+          // 若同 slot 有多筆，保留最新
+          if (!slotInfo[r.slot] || r.date > slotInfo[r.slot].date) {
+            slotInfo[r.slot] = {
+              date: r.date || '',
+              wordCount: r.wordCount || 0,
+              hasComment: !!(r.teacherComment && r.teacherComment.trim()),
+              durationSeconds: r.durationSeconds || 0,
+            };
+          }
+        }
+      });
+      const doneCount = filledSlots.size;
+      const recsWithTime = recs.filter(r => typeof r.durationSeconds === 'number' && r.durationSeconds > 0);
+      let avgTimeHtml = '';
+      if (recsWithTime.length > 0) {
+        const avgSec = Math.round(recsWithTime.reduce((s, r) => s + r.durationSeconds, 0) / recsWithTime.length);
+        avgTimeHtml = `平均寫作時間 <span class="ts-avg-time">${formatDuration(avgSec)}</span>（${recsWithTime.length} 篇平均）`;
+      } else {
+        avgTimeHtml = '尚無寫作紀錄';
+      }
+      const allFull = doneCount >= totalCount;
+      const startHref = appendUrlParam(tool.url, 'user', user);
+      const section = document.createElement('div');
+      section.className = 'tool-section ' + tool.cls;
+      section.innerHTML = `
+        <div class="ts-header">
+          <div class="ts-title">
+            <h2>${tool.icon} ${tool.name}</h2>
+            <span class="ts-en">${tool.nameEn}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <div class="ts-progress">
+              已完成 <span class="done">${doneCount}</span> / ${totalCount} 篇
+            </div>
+            ${allFull
+              ? `<span class="ts-start-btn" style="opacity:0.5; cursor:not-allowed; background:var(--gray); border-color:var(--gray);">已寫完</span>`
+              : `<a class="ts-start-btn" href="${startHref}">→ 開始寫作</a>`}
+          </div>
+        </div>
+        <div class="ts-body">
+          <div class="chapter-grid-wrap"></div>
+        </div>
+        <div class="ts-footer">${avgTimeHtml}</div>
+      `;
+      wrap.appendChild(section);
+      renderWritingSlotGrid(section.querySelector('.chapter-grid-wrap'), tool, toolKey, totalCount, slotInfo, user);
+      return;
+    }
+
+    // ===== 既有測驗：章節格子（保留原本邏輯） =====
     const byChapter = {};
     recs.forEach(r => {
       const k = r.chapter || '?';
@@ -1226,7 +1448,7 @@ async function renderToolSections(user, history) {
     } else {
       avgTimeHtml = '尚無時間紀錄';
     }
-    const startHref = tool.url + '?user=' + encodeURIComponent(user);
+    const startHref = appendUrlParam(tool.url, 'user', user);
     const section = document.createElement('div');
     section.className = 'tool-section ' + tool.cls;
     section.innerHTML = `
@@ -1250,6 +1472,62 @@ async function renderToolSections(user, history) {
     wrap.appendChild(section);
     renderChapterGrid(section.querySelector('.chapter-grid-wrap'), tool, chaptersToShow, byChapter, user);
   });
+}
+
+/* ===========================================================
+   寫作測驗用的 40 格 slot grid
+   - 空格：灰色、虛線邊框、不可點
+   - 已完成：tool 顏色、可點 → 進入 review 模式
+   =========================================================== */
+function renderWritingSlotGrid(container, tool, toolKey, totalCount, slotInfo, user) {
+  const PER_ROW = 10;
+  let html = `<div class="grid-label">作品進度（共 ${totalCount} 篇，每排 ${PER_ROW} 篇）</div><div class="chapter-grid">`;
+  for (let i = 0; i < totalCount; i += PER_ROW) {
+    const sliceLen = Math.min(PER_ROW, totalCount - i);
+    html += `<div class="chapter-grid-row">`;
+    html += `<span class="row-label">${i + 1}–${i + sliceLen}</span>`;
+    for (let j = 0; j < sliceLen; j++) {
+      const num = i + j + 1;
+      const info = slotInfo[num];
+      const done = !!info;
+      const cls = ['chapter-cell'];
+      if (done) {
+        cls.push('writing-done');
+        cls.push(tool.cls);
+      } else {
+        cls.push('writing-empty');
+      }
+      let tipHtml = `第 ${num} 篇`;
+      if (done) {
+        const dateStr = formatShortDate(info.date);
+        tipHtml += `<br>${dateStr} · ${info.wordCount} 字`;
+        if (info.hasComment) tipHtml += '<br>已有老師評語';
+      } else {
+        tipHtml += '<br>尚未完成';
+      }
+      if (done) {
+        const href = appendUrlParam(appendUrlParam(tool.url, 'user', user), 'slot', String(num));
+        const inner = info.hasComment ? '★' : '✓';
+        html += `<a class="${cls.join(' ')}" href="${href}"><span class="check">${inner}</span><span class="cell-tip">${tipHtml}</span></a>`;
+      } else {
+        html += `<span class="${cls.join(' ')}">${num}<span class="cell-tip">${tipHtml}</span></span>`;
+      }
+    }
+    for (let f = sliceLen; f < PER_ROW; f++) {
+      html += `<span class="chapter-cell" style="visibility:hidden"></span>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+  html += `
+    <div style="margin-top:14px; display:flex; flex-wrap:wrap; gap:14px; font-size:11px; color:var(--ink-soft); font-style:italic;">
+      <span style="display:inline-flex; align-items:center; gap:5px;"><span class="chapter-cell writing-empty" style="position:relative; width:14px; height:14px; max-width:14px; min-width:14px; flex:0 0 14px; aspect-ratio:auto; opacity:1;"></span> 尚未完成</span>
+      <span style="display:inline-flex; align-items:center; gap:5px;"><span class="chapter-cell writing-done ${tool.cls}" style="position:relative; width:14px; height:14px; max-width:14px; min-width:14px; flex:0 0 14px; aspect-ratio:auto;"></span> 已完成</span>
+      <span style="display:inline-flex; align-items:center; gap:5px;"><span class="chapter-cell writing-done ${tool.cls}" style="position:relative; width:14px; height:14px; max-width:14px; min-width:14px; flex:0 0 14px; aspect-ratio:auto;">★</span> 有老師評語</span>
+      <span style="color:var(--gray)">— 灰色為尚未完成的格子，無法點擊。完成的可以點進去檢視。</span>
+    </div>
+  `;
+  container.innerHTML = html;
 }
 
 function gradeForPct(pct) {
@@ -1327,18 +1605,30 @@ function renderHistoryTable(history) {
   const display = showAllHistory ? sorted : sorted.slice(0, HISTORY_PREVIEW);
   display.forEach((h, idx) => {
     const tool = TOOLS[h.tool] || { name: h.tool, cls: '' };
-    const pct = h.total > 0 ? Math.round(h.correct / h.total * 100) : 0;
-    const pctCls = pct >= 90 ? 'high' : (pct < 70 ? 'low' : '');
-    const perfect = h.wrong === 0 ? ' <span class="h-perfect">★</span>' : '';
+    const isWriting = h.kind === 'writing';
     const tr = document.createElement('tr');
     tr.className = 'h-row';
     tr.dataset.idx = String(idx);
+    let scoreCell, pctCell;
+    if (isWriting) {
+      const wc = h.wordCount || 0;
+      const mins = h.durationSeconds ? Math.round(h.durationSeconds / 60) : 0;
+      const commentMark = (h.teacherComment && h.teacherComment.trim()) ? ' <span style="color:var(--yellow)">★</span>' : '';
+      scoreCell = `<td class="h-score" style="font-family:'Iowan Old Style',serif; font-size:14px;">${wc} 字${commentMark}</td>`;
+      pctCell = `<td class="h-pct" style="color:var(--ink-soft)">${mins > 0 ? mins + ' 分' : '—'}</td>`;
+    } else {
+      const pct = h.total > 0 ? Math.round(h.correct / h.total * 100) : 0;
+      const pctCls = pct >= 90 ? 'high' : (pct < 70 ? 'low' : '');
+      const perfect = h.wrong === 0 ? ' <span class="h-perfect">★</span>' : '';
+      scoreCell = `<td class="h-score">${h.correct} / ${h.total}${perfect}</td>`;
+      pctCell = `<td class="h-pct ${pctCls}">${pct}%</td>`;
+    }
     tr.innerHTML = `
       <td class="h-date"><span class="h-arrow">▶</span>${formatDateTime(h.date)}</td>
       <td class="h-tool"><span class="tag ${tool.cls}">${tool.name}</span></td>
       <td>${escapeHtml(h.chapter)}</td>
-      <td class="h-score">${h.correct} / ${h.total}${perfect}</td>
-      <td class="h-pct ${pctCls}">${pct}%</td>
+      ${scoreCell}
+      ${pctCell}
     `;
     tbody.appendChild(tr);
     // 展開列（預設隱藏）
@@ -1369,6 +1659,44 @@ function renderHistoryTable(history) {
 }
 
 function buildHistoryDetailHtml(h) {
+  // === 寫作測驗：顯示題目 + 作文 + 老師評語 ===
+  if (h.kind === 'writing') {
+    const tool = TOOLS[h.tool] || { name: h.tool, url: 'writing.html?type=' + h.tool };
+    const user = getCurrentUser();
+    const promptText = (h.prompt || '').trim();
+    const essayText  = (h.essay || '').trim();
+    const comment    = (h.teacherComment || '').trim();
+    const reviewHref = appendUrlParam(appendUrlParam(tool.url, 'user', user), 'slot', String(h.slot || ''));
+    let html = '<div class="h-writing-block">';
+    html += '<div class="hw-label">題目 Prompt</div>';
+    if (promptText) {
+      html += '<div class="hw-prompt">' + escapeHtml(promptText) + '</div>';
+    } else {
+      html += '<div class="hw-empty">（沒有填寫題目）</div>';
+    }
+    html += '<div class="hw-label">作文 Essay（' + (h.wordCount || 0) + ' 字）</div>';
+    if (essayText) {
+      html += '<div class="hw-essay">' + escapeHtml(essayText) + '</div>';
+    } else {
+      html += '<div class="hw-empty">（空白）</div>';
+    }
+    html += '<div class="hw-label">老師評語 Teacher\'s Comment</div>';
+    if (comment) {
+      html += '<div class="hw-comment">' + escapeHtml(comment) + '</div>';
+    } else {
+      html += '<div class="hw-empty">（尚未填寫評語 — 可在「檢視」頁面填寫）</div>';
+    }
+    html += '<div class="hw-meta">';
+    if (typeof h.durationSeconds === 'number' && h.durationSeconds > 0) {
+      html += '寫作時間：' + formatDuration(h.durationSeconds);
+      if (h.plannedMinutes) html += '（預計 ' + h.plannedMinutes + ' 分）';
+    }
+    html += '</div>';
+    html += '<a class="hw-open-btn" href="' + reviewHref + '">→ 開啟檢視頁面</a>';
+    html += '</div>';
+    return html;
+  }
+
   const wrongList = Array.isArray(h.wrongList) ? h.wrongList : [];
   let html = '<div class="h-detail-title">錯題清單';
   if (wrongList.length) html += `（${wrongList.length} 題）`;
