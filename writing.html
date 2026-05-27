@@ -70,7 +70,7 @@
     border-color: var(--ink);
   }
 
-  /* ====== Setup card共用樣式（給 teacher / practice / fallback 三種 setup screen） ====== */
+  /* ====== Setup card共用樣式 ====== */
   .center-screen {
     min-height: 100vh;
     display: flex;
@@ -81,7 +81,7 @@
     z-index: 1;
   }
   .setup-card {
-    max-width: 560px;
+    max-width: 580px;
     width: 100%;
     background: var(--paper-card);
     border: 1.5px solid var(--ink);
@@ -114,7 +114,7 @@
   .setup-card .slot-info {
     font-size: 14px;
     color: var(--ink-soft);
-    margin-bottom: 24px;
+    margin-bottom: 18px;
     padding: 10px 14px;
     background: var(--paper);
     border: 1px dashed var(--rule);
@@ -145,25 +145,68 @@
     font-style: normal;
   }
 
-  /* Prompt textarea (teacher setup) */
+  /* ====== Rich-text toolbar (teacher prompt) ====== */
+  .rich-toolbar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    text-align: left;
+    flex-wrap: wrap;
+  }
+  .rich-toolbar button {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    padding: 6px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 2px;
+    min-width: 36px;
+    transition: all 0.12s;
+  }
+  .rich-toolbar button:hover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .rich-toolbar button:hover .red-letter { color: white !important; }
+  .rich-toolbar .toolbar-hint {
+    margin-left: auto;
+    align-self: center;
+    font-style: italic;
+    color: var(--gray);
+    font-size: 11px;
+  }
+
+  /* Prompt rich-text editor (teacher setup) */
   .prompt-input {
     width: 100%;
-    min-height: 160px;
+    min-height: 180px;
+    max-height: 360px;
+    overflow-y: auto;
     padding: 14px 16px;
     font-family: 'Iowan Old Style', 'Palatino Linotype', serif;
     font-size: 16px;
-    line-height: 1.6;
+    line-height: 1.7;
     border: 1.5px solid var(--rule);
     background: var(--paper);
     border-radius: 2px;
     color: var(--ink);
-    resize: vertical;
     margin-bottom: 16px;
     text-align: left;
+    outline: none;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
   .prompt-input:focus {
     border-color: var(--ink);
-    outline: none;
+  }
+  .prompt-input:empty::before {
+    content: attr(data-placeholder);
+    color: var(--gray);
+    font-style: italic;
+    pointer-events: none;
   }
 
   /* Prompt preview (practice setup) */
@@ -178,7 +221,7 @@
     color: var(--ink);
     text-align: center;
     border-radius: 2px;
-    min-height: 100px;
+    min-height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -195,6 +238,14 @@
     text-align: left;
   }
   .prompt-preview-empty { color: var(--gray); font-style: italic; }
+  .prompt-preview-hint {
+    margin-top: -10px;
+    margin-bottom: 18px;
+    font-size: 11px;
+    color: var(--gray);
+    font-style: italic;
+    text-align: right;
+  }
 
   .duration-row {
     margin-bottom: 20px;
@@ -422,36 +473,41 @@
     flex-shrink: 0;
   }
 
-  /* Prompt pane — vertically centered content */
-  .prompt-pane .prompt-content {
+  /* Prompt pane — 滾動容器 + margin:auto 讓短內容置中、長內容可滾動 */
+  .prompt-pane .prompt-scroll {
     flex: 1;
-    min-height: 200px;
+    overflow-y: auto;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    min-height: 0;
+    /* 自訂滾軸 */
+    scrollbar-width: thin;
+    scrollbar-color: var(--rule) transparent;
+  }
+  .prompt-pane .prompt-scroll::-webkit-scrollbar { width: 8px; }
+  .prompt-pane .prompt-scroll::-webkit-scrollbar-thumb {
+    background: var(--rule);
+    border-radius: 4px;
+  }
+  .prompt-pane .prompt-content {
+    margin: auto 0;          /* 短內容時上下置中；長內容時 margin 收回為 0，內容貼上同時可滾動 */
+    width: 100%;
     text-align: center;
     padding: 18px 12px;
     font-family: 'Iowan Old Style', 'Palatino Linotype', serif;
     font-size: 17px;
     line-height: 1.7;
     color: var(--ink);
-    outline: none;
     white-space: pre-wrap;
     word-break: break-word;
-    overflow-y: auto;
   }
-  .prompt-pane .prompt-content[contenteditable="true"]:empty::before {
-    content: '請貼上題目 (Paste prompt here)';
-    color: var(--gray);
-    font-style: italic;
-  }
-  .prompt-pane .prompt-content[contenteditable="true"]:focus {
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 2px;
-  }
-  .prompt-pane .prompt-content.locked {
-    cursor: default;
-  }
+  .prompt-pane .prompt-content :first-child { margin-top: 0; }
+  .prompt-pane .prompt-content :last-child  { margin-bottom: 0; }
+  /* 題目裡支援的 inline 格式 */
+  .prompt-pane .prompt-content b,
+  .prompt-pane .prompt-content strong { font-weight: 700; }
+  .prompt-pane .prompt-content i,
+  .prompt-pane .prompt-content em { font-style: italic; }
 
   /* Essay pane (middle) */
   .essay-pane textarea {
@@ -471,7 +527,7 @@
   .essay-pane textarea::placeholder { color: var(--gray); font-style: italic; }
   .essay-pane textarea:disabled {
     color: var(--ink);
-    -webkit-text-fill-color: var(--ink); /* iOS Safari */
+    -webkit-text-fill-color: var(--ink);
     opacity: 1;
     cursor: default;
   }
@@ -546,7 +602,7 @@
     border-radius: 2px;
   }
 
-  /* Comment pane (right) — empty during exam, shows comment box in review */
+  /* Comment pane */
   .comment-pane.empty-during-exam {
     background: transparent;
     border: 1px dashed var(--rule-light);
@@ -567,7 +623,6 @@
     text-align: center;
     padding: 20px;
   }
-  /* 評語框：把樣式跟左/中兩個 pane 對齊 — 用透明背景讓 pane 的 paper-card 顯出來 */
   .comment-pane textarea {
     flex: 1;
     width: 100%;
@@ -613,7 +668,7 @@
   }
   .comment-save-row .comment-saved-msg.show { opacity: 1; }
 
-  /* === Footer with submit / status === */
+  /* === Footer === */
   .exam-footer {
     padding: 14px 24px 22px;
     display: flex;
@@ -660,7 +715,7 @@
     filter: brightness(0.92);
   }
 
-  /* === When time is up: red border around the whole thing === */
+  /* === Time up red border === */
   body.time-up::after {
     content: '';
     position: fixed;
@@ -735,7 +790,7 @@
   }
   .submitted-card .sub-actions .secondary:hover { background: var(--paper-card); }
 
-  /* === Review / Mode banner === */
+  /* === Review banner === */
   .review-banner {
     background: var(--paper-dark);
     border-bottom: 1px solid var(--rule);
@@ -781,7 +836,7 @@
 
 <a class="back-home" id="back-home-link" href="index.html">← 學習中心</a>
 
-<!-- ====== Teacher Setup screen (empty slot：老師準備題目) ====== -->
+<!-- ====== Teacher Setup screen ====== -->
 <div id="teacher-setup-screen" class="center-screen hidden">
   <div class="setup-card">
     <div class="role-tag">TEACHER SETUP</div>
@@ -795,14 +850,28 @@
     <div style="text-align:left; margin-bottom:6px;">
       <label style="display:block; font-style:italic; color:var(--ink-soft); font-size:13px; letter-spacing:2px; text-transform:uppercase; margin-bottom:8px;">題目 Prompt</label>
     </div>
-    <textarea
+
+    <!-- 富文字工具列：粗體 / 紅色 / 清除格式 -->
+    <div class="rich-toolbar" id="teacher-toolbar">
+      <button type="button" data-cmd="bold" title="粗體 Bold (Ctrl+B)"><b>B</b></button>
+      <button type="button" data-cmd="italic" title="斜體 Italic (Ctrl+I)"><i>I</i></button>
+      <button type="button" data-cmd="underline" title="底線 Underline (Ctrl+U)"><u>U</u></button>
+      <button type="button" data-cmd="red" title="紅色 Red"><span class="red-letter" style="color:#c9392c; font-weight:700;">紅</span></button>
+      <button type="button" data-cmd="default-color" title="黑色 Default"><span style="color:var(--ink); font-weight:700;">黑</span></button>
+      <button type="button" data-cmd="reset" title="清除所有格式 Plain">清除格式</button>
+      <span class="toolbar-hint">選取文字後按按鈕 / Ctrl+B、Ctrl+I</span>
+    </div>
+
+    <!-- contenteditable 題目編輯區 -->
+    <div
       id="teacher-prompt-input"
       class="prompt-input"
-      placeholder="請在此輸入題目 / Enter the writing prompt here..."
+      contenteditable="true"
       spellcheck="false"
       autocomplete="off"
       autocorrect="off"
-      autocapitalize="off"></textarea>
+      autocapitalize="off"
+      data-placeholder="請在此輸入題目 / Enter the writing prompt here..."></div>
 
     <button class="start-btn" id="teacher-save-btn">✓ 儲存題目</button>
     <button class="secondary-btn" id="teacher-cancel-btn">取消</button>
@@ -812,7 +881,7 @@
   </div>
 </div>
 
-<!-- ====== Practice Setup screen (prepared slot：學生開始練習) ====== -->
+<!-- ====== Practice Setup screen ====== -->
 <div id="practice-setup-screen" class="center-screen hidden">
   <div class="setup-card">
     <div class="role-tag">PRACTICE</div>
@@ -823,8 +892,9 @@
       使用者：<b id="practice-setup-user">—</b>　·　第 <b id="practice-setup-slot">—</b> 篇
     </div>
 
-    <div class="prompt-preview-label">題目 Prompt</div>
+    <div class="prompt-preview-label">題目 Prompt（第一句預覽）</div>
     <div class="prompt-preview" id="practice-prompt-preview">—</div>
+    <div class="prompt-preview-hint">完整題目會在考試開始後顯示</div>
 
     <div class="duration-row">
       <label for="practice-duration-select">考試時間 Duration</label>
@@ -873,13 +943,9 @@
     <!-- 1/4 prompt -->
     <div class="pane prompt-pane">
       <div class="pane-label">題目 Prompt</div>
-      <div class="prompt-content"
-           id="prompt-content"
-           contenteditable="true"
-           spellcheck="false"
-           autocomplete="off"
-           autocorrect="off"
-           autocapitalize="off"></div>
+      <div class="prompt-scroll" id="prompt-scroll">
+        <div class="prompt-content" id="prompt-content"></div>
+      </div>
     </div>
     <!-- 2/4 essay -->
     <div class="pane essay-pane" id="essay-pane">
@@ -906,7 +972,7 @@
         <span class="revise-saved-msg" id="essay-revise-saved-msg">✓ 已儲存</span>
       </div>
     </div>
-    <!-- 1/4 comment (empty during exam; visible in review) -->
+    <!-- 1/4 comment -->
     <div class="pane comment-pane empty-during-exam" id="comment-pane">
       <div class="pane-label">老師評語 Teacher's Comment</div>
       <div class="comment-placeholder" id="comment-placeholder">
@@ -1011,7 +1077,7 @@ function loadGistConfig() {
   catch (e) { return null; }
 }
 
-/* === 背景推送到 Gist（沿用既有設定，失敗不影響使用者） === */
+/* === 背景推送到 Gist === */
 async function pushToGist(u) {
   const c = loadGistConfig();
   if (!c || !c.gistId || !c.token) return;
@@ -1040,9 +1106,97 @@ async function pushToGist(u) {
 }
 
 /* ===========================================================
+   富文字 sanitizer + helpers
+   - 只允許：b / strong / i / em / u / br / p / div / span / font
+   - 屬性只保留 style: color、或 font color="..."
+   =========================================================== */
+const ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','FONT']);
+
+function sanitizeRichPrompt(html) {
+  if (!html) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = String(html);
+  walk(tmp);
+  function walk(node) {
+    const kids = [...node.childNodes];
+    for (const c of kids) {
+      if (c.nodeType === 1) {
+        if (!ALLOWED_TAGS.has(c.tagName)) {
+          // 解開：用子節點取代這個元素
+          while (c.firstChild) c.parentNode.insertBefore(c.firstChild, c);
+          c.parentNode.removeChild(c);
+        } else {
+          // 屬性過濾：只留 color
+          const attrs = [...c.attributes];
+          let colorStr = null;
+          for (const a of attrs) {
+            const n = a.name.toLowerCase();
+            if (n === 'style') {
+              const m = a.value.match(/color:\s*([^;]+)/i);
+              if (m) colorStr = m[1].trim();
+            } else if (n === 'color') {
+              colorStr = a.value.trim();
+            }
+            c.removeAttribute(a.name);
+          }
+          if (colorStr) {
+            // 只允許簡單的顏色字（hex、rgb、named）
+            if (/^[a-z]+$|^#[0-9a-f]{3,8}$|^rgb\(/i.test(colorStr)) {
+              c.setAttribute('style', 'color: ' + colorStr);
+            }
+          }
+          walk(c);
+        }
+      } else if (c.nodeType === 8) {
+        c.parentNode.removeChild(c);
+      }
+    }
+  }
+  return tmp.innerHTML;
+}
+
+function htmlToPlainText(html) {
+  if (!html) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = String(html);
+  // 把 <br> 跟區塊元素換成換行
+  tmp.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+  tmp.querySelectorAll('p, div').forEach(el => el.appendChild(document.createTextNode('\n')));
+  return (tmp.textContent || '').replace(/\n{2,}/g, '\n').trim();
+}
+
+function firstSentence(text) {
+  if (!text) return '';
+  const trimmed = String(text).trim();
+  if (!trimmed) return '';
+  // 找第一個 . ! ? 。 ！ ？
+  const m = trimmed.match(/^[\s\S]*?[.!?。！？]/);
+  if (m) {
+    let s = m[0].trim();
+    // 縮短超長的句子
+    if (s.length > 200) s = s.slice(0, 200) + '…';
+    return s;
+  }
+  // 沒有結尾標點：取第一行 / 前 100 字
+  const firstLine = trimmed.split(/\r?\n/)[0];
+  if (firstLine.length <= 100) return firstLine;
+  return firstLine.slice(0, 100) + '…';
+}
+
+/* 把 prompt + promptIsHtml 寫到指定 DOM 節點 */
+function renderPromptInto(el, prompt, isHtml) {
+  if (!prompt) { el.textContent = ''; return; }
+  if (isHtml) {
+    el.innerHTML = sanitizeRichPrompt(prompt);
+  } else {
+    el.textContent = prompt;
+  }
+}
+
+/* ===========================================================
    狀態
    =========================================================== */
-let mode = '';           // 'teacher-setup' | 'practice-setup' | 'exam' | 'review' | 'submitted'
+let mode = '';
 let activeSlot = null;
 let plannedMinutes = 30;
 let timerInterval = null;
@@ -1051,8 +1205,12 @@ let timerRemainSec = 0;
 let isLocked = false;
 let draftSaveInterval = null;
 let beepPlayed = false;
-let reviewRecord = null;       // 當 mode = 'review'：那筆完成紀錄
-let preparedRecord = null;     // 當 mode = 'practice-setup'：預先準備好的紀錄
+let reviewRecord = null;
+let preparedRecord = null;
+
+// 在 exam mode 時，這次練習的題目 + 是否 HTML
+let activePromptHtml = '';
+let activePromptIsHtml = false;
 
 /* ===========================================================
    工具
@@ -1087,7 +1245,7 @@ function fmtDate(iso) {
   return `${yyyy}/${mm}/${dd} ${hh}:${mi}`;
 }
 
-/* === Beep（Web Audio API；不需外部檔案） === */
+/* === Beep === */
 let audioCtx = null;
 function ensureAudio() {
   if (!audioCtx) {
@@ -1127,12 +1285,10 @@ function isPreparedRecord(r) {
   return r && r.kind === 'writing' && r.status === 'prepared';
 }
 function isCompletedRecord(r) {
-  // status missing or 'completed' 都算 completed（向後相容）
   return r && r.kind === 'writing' && r.status !== 'prepared'
     && typeof r.slot === 'number';
 }
 
-/* 找這個 slot 的最新「準備中」紀錄 */
 function findPreparedForSlot(slot) {
   const hist = loadHistory(user);
   let best = null;
@@ -1145,7 +1301,6 @@ function findPreparedForSlot(slot) {
   return best;
 }
 
-/* 找這個 slot 的最新「已完成」紀錄 */
 function findCompletedForSlot(slot) {
   const hist = loadHistory(user);
   let best = null;
@@ -1158,7 +1313,6 @@ function findCompletedForSlot(slot) {
   return best;
 }
 
-/* 找下一個準備中的 slot */
 function findNextPreparedSlot() {
   const hist = loadHistory(user);
   const completed = new Set();
@@ -1174,7 +1328,6 @@ function findNextPreparedSlot() {
   return null;
 }
 
-/* 找下一個空格 */
 function findNextEmptySlot() {
   const hist = loadHistory(user);
   const filled = new Set();
@@ -1207,7 +1360,7 @@ function clearDraft(slot) {
 }
 
 /* ===========================================================
-   Teacher setup mode
+   Teacher setup mode (含富文字工具列)
    =========================================================== */
 function initTeacherSetup(slot) {
   mode = 'teacher-setup';
@@ -1222,22 +1375,69 @@ function initTeacherSetup(slot) {
   $('teacher-setup-user').textContent = user;
   $('teacher-setup-slot').textContent = String(slot);
 
-  // 若有預先準備過的紀錄，把它帶出來 (允許 teacher 編輯既有的 prepared)
+  // 若已有 prepared 紀錄，把它帶出來
   const existing = findPreparedForSlot(slot);
-  $('teacher-prompt-input').value = existing ? (existing.prompt || '') : '';
-
-  setTimeout(() => $('teacher-prompt-input').focus(), 0);
+  const input = $('teacher-prompt-input');
+  if (existing) {
+    if (existing.promptIsHtml) {
+      input.innerHTML = sanitizeRichPrompt(existing.prompt || '');
+    } else {
+      input.textContent = existing.prompt || '';
+    }
+  } else {
+    input.innerHTML = '';
+  }
+  setTimeout(() => input.focus(), 0);
 }
 
+/* === 工具列：粗體 / 紅色 / 清除 === */
+function execEditorCmd(cmd) {
+  const input = $('teacher-prompt-input');
+  input.focus();
+  switch (cmd) {
+    case 'bold':
+      document.execCommand('bold', false, null);
+      break;
+    case 'italic':
+      document.execCommand('italic', false, null);
+      break;
+    case 'underline':
+      document.execCommand('underline', false, null);
+      break;
+    case 'red':
+      document.execCommand('foreColor', false, '#c9392c');
+      break;
+    case 'default-color':
+      document.execCommand('foreColor', false, '#2a2620');
+      break;
+    case 'reset':
+      document.execCommand('removeFormat', false, null);
+      document.execCommand('foreColor', false, '#2a2620');
+      break;
+  }
+}
+
+document.querySelectorAll('#teacher-toolbar button').forEach(btn => {
+  btn.addEventListener('mousedown', e => e.preventDefault()); // 不要讓編輯區失焦
+  btn.addEventListener('click', () => execEditorCmd(btn.dataset.cmd));
+});
+
+/* 貼上時改成純文字（避免外部來源的奇怪 HTML） */
+$('teacher-prompt-input').addEventListener('paste', e => {
+  e.preventDefault();
+  const text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
+  document.execCommand('insertText', false, text);
+});
+
 $('teacher-save-btn').addEventListener('click', () => {
-  const promptVal = ($('teacher-prompt-input').value || '').trim();
-  if (!promptVal) {
+  const input = $('teacher-prompt-input');
+  const html = sanitizeRichPrompt(input.innerHTML);
+  const plain = htmlToPlainText(html);
+  if (!plain.trim()) {
     alert('請先填寫題目');
     return;
   }
-  // 寫入或更新 prepared 紀錄
   const hist = loadHistory(user);
-  // 移除這個 slot 之前的 prepared 紀錄（避免累積）
   const filtered = hist.filter(r => !(r.tool === type && r.slot === activeSlot && isPreparedRecord(r)));
   filtered.push({
     tool: type,
@@ -1245,13 +1445,13 @@ $('teacher-save-btn').addEventListener('click', () => {
     status: 'prepared',
     chapter: 'Essay ' + activeSlot,
     slot: activeSlot,
-    prompt: promptVal,
+    prompt: html,
+    promptIsHtml: true,
     correct: 0, wrong: 0, total: 0,
     date: new Date().toISOString()
   });
   saveHistoryArray(user, filtered);
   pushToGist(user);
-  // 返回首頁
   location.href = HOME_URL + '?user=' + encodeURIComponent(user);
 });
 
@@ -1276,17 +1476,19 @@ function initPracticeSetup(slot, prepared) {
   $('practice-setup-user').textContent = user;
   $('practice-setup-slot').textContent = String(slot);
 
-  // 題目預覽
-  const promptText = (prepared.prompt || '').trim();
+  // 題目預覽：只顯示第一句話（純文字）
+  const promptRaw = prepared.prompt || '';
+  const plain = prepared.promptIsHtml ? htmlToPlainText(promptRaw) : promptRaw;
+  const previewText = firstSentence(plain);
   const previewEl = $('practice-prompt-preview');
-  if (promptText) {
-    previewEl.textContent = promptText;
+  if (previewText) {
+    previewEl.textContent = previewText;
     previewEl.classList.remove('prompt-preview-empty');
   } else {
     previewEl.innerHTML = '<span class="prompt-preview-empty">（題目尚未填寫）</span>';
   }
 
-  // 時間下拉（10–90 分鐘，5 分鐘一級）
+  // 時間下拉
   const sel = $('practice-duration-select');
   sel.innerHTML = '';
   for (let m = 10; m <= 90; m += 5) {
@@ -1297,7 +1499,7 @@ function initPracticeSetup(slot, prepared) {
     sel.appendChild(opt);
   }
 
-  // 偵測草稿
+  // 草稿
   const draft = loadDraft(slot);
   if (draft) {
     $('practice-draft-resume').classList.remove('hidden');
@@ -1317,8 +1519,9 @@ $('practice-start-btn').addEventListener('click', () => {
   const sel = $('practice-duration-select');
   plannedMinutes = parseInt(sel.value, 10) || 30;
   ensureAudio();
-  const promptText = (preparedRecord && preparedRecord.prompt) || '';
-  startExam(plannedMinutes * 60, promptText, '');
+  const promptHtml = (preparedRecord && preparedRecord.prompt) || '';
+  const isHtml = !!(preparedRecord && preparedRecord.promptIsHtml);
+  startExam(plannedMinutes * 60, promptHtml, isHtml, '');
 });
 
 $('practice-draft-resume-btn').addEventListener('click', () => {
@@ -1329,11 +1532,10 @@ $('practice-draft-resume-btn').addEventListener('click', () => {
   const remain = typeof draft.remainSec === 'number'
     ? Math.max(1, draft.remainSec)
     : plannedMinutes * 60;
-  // 題目以 prepared 為主，但 draft 內容如果有就用它（最新版本）
-  const promptText = (draft.prompt && draft.prompt.trim())
-    ? draft.prompt
-    : ((preparedRecord && preparedRecord.prompt) || '');
-  startExam(remain, promptText, draft.essay || '');
+  // 題目永遠以 prepared 為主（防止草稿覆蓋題目）
+  const promptHtml = (preparedRecord && preparedRecord.prompt) || '';
+  const isHtml = !!(preparedRecord && preparedRecord.promptIsHtml);
+  startExam(remain, promptHtml, isHtml, draft.essay || '');
 });
 
 $('practice-draft-discard').addEventListener('click', () => {
@@ -1343,14 +1545,13 @@ $('practice-draft-discard').addEventListener('click', () => {
 });
 
 $('practice-edit-prompt-link').addEventListener('click', () => {
-  // 切到 teacher-setup 介面去編輯題目
   initTeacherSetup(activeSlot);
 });
 
 /* ===========================================================
    進入考試畫面
    =========================================================== */
-function startExam(remainSec, initialPrompt, initialEssay) {
+function startExam(remainSec, initialPrompt, initialPromptIsHtml, initialEssay) {
   mode = 'exam';
   isLocked = false;
   beepPlayed = false;
@@ -1368,29 +1569,29 @@ function startExam(remainSec, initialPrompt, initialEssay) {
   $('footer-info').innerHTML =
     '計時 <b>' + plannedMinutes + ' 分</b>　·　時間到時會自動儲存並鎖定。';
 
-  $('prompt-content').textContent = initialPrompt || '';
+  // 題目：渲染 HTML，鎖死 — 老師事先準備好的，考試中不能編輯
+  activePromptHtml = initialPrompt || '';
+  activePromptIsHtml = !!initialPromptIsHtml;
+  renderPromptInto($('prompt-content'), activePromptHtml, activePromptIsHtml);
+  // 題目欄回到最上面（避免從草稿恢復時還停在中間）
+  $('prompt-scroll').scrollTop = 0;
+
   $('essay-text').value = initialEssay || '';
   $('essay-text').disabled = false;
-  $('prompt-content').setAttribute('contenteditable', 'true');
-  $('prompt-content').classList.remove('locked');
   updateWordCount();
 
-  // 評語區（考試中保持隱藏）
   $('comment-pane').classList.add('empty-during-exam');
   $('comment-text').classList.add('hidden');
   $('comment-save-row').classList.add('hidden');
   $('comment-placeholder').classList.remove('hidden');
 
-  // 隱藏 revise 按鈕
   $('essay-revise-row').classList.add('hidden');
   $('essay-revise-saving-row').classList.add('hidden');
   $('essay-pane').classList.remove('revising');
 
-  // 提早交卷按鈕
   $('submit-btn').classList.remove('hidden');
   $('submit-btn').textContent = '提早交卷';
 
-  // 啟動計時
   timerRemainSec = Math.max(1, Math.floor(remainSec));
   timerEndAt = Date.now() + timerRemainSec * 1000;
   startTimer();
@@ -1464,12 +1665,10 @@ function stopDraftAutoSave() {
 }
 function autoSaveDraft() {
   if (mode !== 'exam' || isLocked) return;
-  const prompt = $('prompt-content').textContent || '';
   const essay = $('essay-text').value || '';
   saveDraft(activeSlot, {
     plannedMinutes,
     remainSec: timerRemainSec,
-    prompt,
     essay,
     savedAt: new Date().toISOString()
   });
@@ -1491,9 +1690,9 @@ function triggerTimeUp() {
 $('submit-btn').addEventListener('click', () => {
   if (mode !== 'exam' || isLocked) return;
   const wc = countWords($('essay-text').value);
-  const promptVal = ($('prompt-content').textContent || '').trim();
+  const promptPlain = activePromptIsHtml ? htmlToPlainText(activePromptHtml) : activePromptHtml;
   let msg = '確定要提早交卷嗎？\n\n';
-  msg += '· 題目：' + (promptVal ? (promptVal.length > 40 ? promptVal.slice(0, 40) + '…' : promptVal) : '（空白）') + '\n';
+  msg += '· 題目：' + (promptPlain ? (promptPlain.length > 40 ? promptPlain.slice(0, 40) + '…' : promptPlain) : '（空白）') + '\n';
   msg += '· 字數：' + wc + ' 字\n\n';
   msg += '交卷後就無法再修改（但可以日後在檢視頁修改）。';
   if (!confirm(msg)) return;
@@ -1501,28 +1700,20 @@ $('submit-btn').addEventListener('click', () => {
   finalizeAndSave('early-submit');
 });
 
-/* === 儲存最終記錄 ===
-   - 移除這個 slot 的 prepared 紀錄
-   - 推入一筆 completed 紀錄
-*/
+/* === 儲存最終記錄 === */
 function finalizeAndSave(reason) {
   if (isLocked) return;
   isLocked = true;
   stopDraftAutoSave();
 
-  const promptVal = ($('prompt-content').textContent || '').trim();
   const essayVal = $('essay-text').value || '';
   const wc = countWords(essayVal);
   const usedSec = Math.max(0, plannedMinutes * 60 - timerRemainSec);
 
-  // 鎖定 UI
   $('essay-text').disabled = true;
-  $('prompt-content').setAttribute('contenteditable', 'false');
-  $('prompt-content').classList.add('locked');
   $('submit-btn').classList.add('hidden');
   window.removeEventListener('beforeunload', beforeUnloadHandler);
 
-  // 寫入歷史紀錄：先移除此 slot 的 prepared 紀錄，再加入 completed
   const hist = loadHistory(user);
   const filtered = hist.filter(r => !(
     r.tool === type && r.slot === activeSlot && isPreparedRecord(r)
@@ -1533,7 +1724,8 @@ function finalizeAndSave(reason) {
     status: 'completed',
     chapter: 'Essay ' + activeSlot,
     slot: activeSlot,
-    prompt: promptVal,
+    prompt: activePromptHtml,
+    promptIsHtml: activePromptIsHtml,
     essay: essayVal,
     wordCount: wc,
     plannedMinutes,
@@ -1577,6 +1769,8 @@ function initReview(slot, rec) {
   activeSlot = slot;
   mode = 'review';
   isLocked = true;
+  activePromptHtml = rec.prompt || '';
+  activePromptIsHtml = !!rec.promptIsHtml;
 
   $('teacher-setup-screen').classList.add('hidden');
   $('practice-setup-screen').classList.add('hidden');
@@ -1591,7 +1785,6 @@ function initReview(slot, rec) {
   $('exam-title-en').textContent = cfg.en;
   $('exam-slot-label').textContent = '第 ' + slot + ' 篇 / ' + TOTAL_SLOTS;
 
-  // timer 區改成顯示「已完成」狀態
   $('timer-display').textContent = '✓ 完成';
   $('timer-display').classList.remove('warning', 'ended');
   $('timer-display').style.color = cfg.color;
@@ -1603,27 +1796,24 @@ function initReview(slot, rec) {
     '<span style="font-style:normal">' + (rec.wordCount || 0) + ' 字</span>' +
     (mins > 0 ? '　·　花 ' + mins + ' 分' : '');
 
-  // 內容（鎖定）
-  $('prompt-content').textContent = rec.prompt || '';
-  $('prompt-content').setAttribute('contenteditable', 'false');
-  $('prompt-content').classList.add('locked');
+  // 題目（鎖定，渲染 HTML）
+  renderPromptInto($('prompt-content'), activePromptHtml, activePromptIsHtml);
+  $('prompt-scroll').scrollTop = 0;
+
   $('essay-text').value = rec.essay || '';
   $('essay-text').disabled = true;
   updateWordCount();
 
-  // 顯示 revise 按鈕
   $('essay-revise-row').classList.remove('hidden');
   $('essay-revise-saving-row').classList.add('hidden');
   $('essay-pane').classList.remove('revising');
 
-  // 評語面板：顯示 textarea + 儲存按鈕
   $('comment-pane').classList.remove('empty-during-exam');
   $('comment-placeholder').classList.add('hidden');
   $('comment-text').classList.remove('hidden');
   $('comment-save-row').classList.remove('hidden');
   $('comment-text').value = rec.teacherComment || '';
 
-  // footer：藏掉提早交卷
   $('submit-btn').classList.add('hidden');
   $('footer-info').textContent = '檢視模式 — 可修改文章 / 老師評語，題目已鎖定。';
 
@@ -1641,7 +1831,6 @@ $('essay-revise-btn').addEventListener('click', () => {
   $('essay-revise-row').classList.add('hidden');
   $('essay-revise-saving-row').classList.remove('hidden');
   $('essay-text').focus();
-  // 把游標放到文末
   const ta = $('essay-text');
   try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
 });
@@ -1717,7 +1906,7 @@ $('comment-save-btn').addEventListener('click', () => {
 });
 
 /* ===========================================================
-   啟動：根據 slot 狀態自動選擇 mode
+   啟動
    =========================================================== */
 $('back-home-link').href = HOME_URL + '?user=' + encodeURIComponent(user);
 
@@ -1736,7 +1925,6 @@ function routeBySlot(slot) {
     initPracticeSetup(slot, prepared);
     return;
   }
-  // 空格 → 老師準備題目
   initTeacherSetup(slot);
 }
 
@@ -1744,7 +1932,6 @@ if (slotParam) {
   const n = parseInt(slotParam, 10);
   routeBySlot(n);
 } else {
-  // 沒指定 slot：先找下一個可練習的，若無就引導老師準備
   const nextPrepared = findNextPreparedSlot();
   if (nextPrepared !== null) {
     routeBySlot(nextPrepared);

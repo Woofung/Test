@@ -220,7 +220,7 @@
     background: currentColor;
   }
 
-  /* ====== 工具進度區（每個工具一個區塊：章節格子 + 進度資訊） ====== */
+  /* ====== 工具進度區 ====== */
   .tool-section {
     margin-bottom: 40px;
     border: 1px solid var(--rule);
@@ -318,7 +318,6 @@
     box-shadow: none;
   }
 
-  /* 區塊右下：平均完成時間 */
   .tool-section .ts-footer {
     margin-top: 14px;
     text-align: right;
@@ -334,9 +333,7 @@
     margin-left: 4px;
   }
 
-  .ts-body {
-    /* 單欄佈局（章節格子佔滿全寬） */
-  }
+  .ts-body {}
 
   /* === 章節格子 === */
   .chapter-grid-wrap {
@@ -398,32 +395,27 @@
     transform: scale(1.1);
     z-index: 5;
   }
-  /* === 已完成的章節（spelling/vocab/chinese）：依正確率分四級顏色 === */
-  /* A: ≥ 95%  深綠 */
+  /* === 既有測驗的四級顏色 === */
   .chapter-cell.grade-a {
     background: var(--green);
     border-color: var(--green);
     color: white;
   }
-  /* B: 90–95%  淺綠 */
   .chapter-cell.grade-b {
     background: var(--green-bg);
     border-color: var(--green);
     color: var(--green);
   }
-  /* C: 80–90%  黃 */
   .chapter-cell.grade-c {
     background: #f3e2a4;
     border-color: var(--yellow);
     color: #7a5a14;
   }
-  /* D: < 80%  紅 */
   .chapter-cell.grade-d {
     background: #f3c8c2;
     border-color: var(--red);
     color: #8a2820;
   }
-  /* 滿分（100%）：在 A 之上加金色星角標 */
   .chapter-cell.done.perfect::after {
     content: '★';
     position: absolute;
@@ -466,7 +458,6 @@
     border-top-color: var(--ink);
   }
   .chapter-cell:hover .cell-tip { display: block; }
-  /* 沒讀到 Excel：顯示一個提示 */
   .chapter-empty-hint {
     font-size: 13px;
     color: var(--gray);
@@ -475,7 +466,6 @@
   }
 
   /* === 寫作測驗的 4 種格子 === */
-  /* (a) 尚未完成 — 灰底虛線，現在可以點（給老師準備題目用） */
   .chapter-cell.writing-empty {
     background: var(--paper-dark);
     border-color: var(--rule-light);
@@ -490,7 +480,6 @@
     color: var(--ink);
     transform: scale(1.08);
   }
-  /* (b) 可練習 — 老師已準備題目，學生可點 (tool color outline) */
   .chapter-cell.writing-prepared {
     background: var(--paper);
     border-width: 1.5px;
@@ -516,7 +505,6 @@
     filter: brightness(0.95);
     transform: scale(1.12);
   }
-  /* (c) 已完成 — 實心 tool 色 */
   .chapter-cell.writing-done {
     color: white;
     border-style: solid;
@@ -537,7 +525,6 @@
     filter: brightness(1.1);
     transform: scale(1.12);
   }
-  /* (d) 已完成 + 評語 — 用實心 + 角落金色 ★ 來表示（沿用 done 樣式 + commented 修飾） */
   .chapter-cell.writing-done.commented::after {
     content: '★';
     position: absolute;
@@ -549,7 +536,6 @@
     text-shadow: 0 0 2px rgba(0,0,0,0.4);
   }
 
-  /* 寫作圖例小色塊 */
   .writing-legend-cell {
     position: relative;
     width: 14px; height: 14px;
@@ -728,6 +714,11 @@
     word-break: break-word;
     border-radius: 2px;
   }
+  /* 富文字題目支援的 inline 格式 */
+  .h-writing-block .hw-prompt b,
+  .h-writing-block .hw-prompt strong { font-weight: 700; }
+  .h-writing-block .hw-prompt i,
+  .h-writing-block .hw-prompt em { font-style: italic; }
   .h-writing-block .hw-essay {
     background: var(--paper-card);
     border: 1px solid var(--rule-light);
@@ -948,7 +939,6 @@
 <div id="main-screen" class="hidden">
   <div class="container">
 
-    <!-- 頂部 -->
     <div class="topbar">
       <div class="brand">
         <h1>學習中心</h1>
@@ -968,10 +958,8 @@
       </div>
     </div>
 
-    <!-- 工具進度區（章節格子） -->
     <div id="tool-sections"></div>
 
-    <!-- 歷史紀錄 -->
     <div class="history-section">
       <h2>歷史紀錄</h2>
       <table class="history-table" id="history-table">
@@ -1033,9 +1021,6 @@
 <script>
 'use strict';
 
-/* ===========================================================
-   ⚙️ 設定區
-   =========================================================== */
 const USERS = ['淘氣阿珊', '其他人'];
 
 const VOCAB_EXCEL_URL = 'vocabulary.xlsx';
@@ -1069,7 +1054,6 @@ const TOOLS = {
     cls: 'chinese',
     excelSource: 'chars',
   },
-  /* ====== 寫作測驗（共用 writing.html，靠 ?type= 區分） ====== */
   narrative: {
     name: 'Narrative Writing',
     nameEn: '敘事寫作',
@@ -1109,9 +1093,7 @@ function appendUrlParam(url, key, value) {
 
 const HISTORY_PREVIEW = 10;
 
-/* ===========================================================
-   localStorage 介面
-   =========================================================== */
+/* ===== localStorage 介面 ===== */
 const LS_CURRENT_USER = 'studyhub.currentUser';
 const LS_GIST_CONFIG = 'studyhub.gistConfig';
 
@@ -1139,9 +1121,7 @@ function saveGistConfig(cfg) {
   else localStorage.removeItem(LS_GIST_CONFIG);
 }
 
-/* ===========================================================
-   章節清單載入（best-effort，從 Excel 抓）
-   =========================================================== */
+/* ===== 章節清單載入 ===== */
 const chapterListCache = {
   vocab: null,
   chars: null,
@@ -1161,9 +1141,7 @@ async function loadChapterList(source) {
     if (rows.length < 2) return [];
     const header = rows[0].map(h => String(h || '').toLowerCase().trim());
     let chapterColIdx = header.findIndex(h => h === 'chapter' || h === '章節' || h.includes('chapter'));
-    if (chapterColIdx < 0) {
-      chapterColIdx = 1;
-    }
+    if (chapterColIdx < 0) chapterColIdx = 1;
     const seen = new Set();
     for (let i = 1; i < rows.length; i++) {
       const v = String(rows[i][chapterColIdx] || '').trim();
@@ -1186,9 +1164,7 @@ async function loadChapterList(source) {
   }
 }
 
-/* ===========================================================
-   Gist 同步
-   =========================================================== */
+/* ===== Gist 同步 ===== */
 const SyncManager = {
   status: 'off',
   lastError: '',
@@ -1313,9 +1289,7 @@ const SyncManager = {
   }
 };
 
-/* ===========================================================
-   Profile 選擇畫面
-   =========================================================== */
+/* ===== Profile 選擇畫面 ===== */
 function renderProfileScreen() {
   const wrap = document.getElementById('profile-list');
   wrap.innerHTML = '';
@@ -1327,17 +1301,14 @@ function renderProfileScreen() {
   });
   showProfileScreen();
 }
-
 function showProfileScreen() {
   document.getElementById('profile-screen').classList.remove('hidden');
   document.getElementById('main-screen').classList.add('hidden');
 }
-
 function showMainScreen() {
   document.getElementById('profile-screen').classList.add('hidden');
   document.getElementById('main-screen').classList.remove('hidden');
 }
-
 async function selectProfile(name) {
   setCurrentUser(name);
   showMainScreen();
@@ -1359,9 +1330,7 @@ document.getElementById('switch-user-btn').addEventListener('click', () => {
   showProfileScreen();
 });
 
-/* ===========================================================
-   主畫面
-   =========================================================== */
+/* ===== 主畫面 ===== */
 let showAllHistory = false;
 
 async function renderMain() {
@@ -1380,7 +1349,6 @@ async function renderMain() {
 
 function renderTopbarStats(history) {
   const el = document.getElementById('topbar-user-stats');
-  // 排除 prepared（尚未練習的不算）
   const practiced = history.filter(h => !(h.kind === 'writing' && h.status === 'prepared'));
   if (practiced.length === 0) {
     el.textContent = '尚無紀錄';
@@ -1413,14 +1381,63 @@ function computeStreak(history) {
   return streak;
 }
 
-/* ===========================================================
-   寫作紀錄分類工具
-   =========================================================== */
+/* ===== 寫作紀錄分類 ===== */
 function isPreparedRec(r) {
   return r && r.kind === 'writing' && r.status === 'prepared';
 }
 function isCompletedRec(r) {
   return r && r.kind === 'writing' && r.status !== 'prepared' && typeof r.slot === 'number';
+}
+
+/* ===== 富文字題目 sanitizer + helpers（要跟 writing.html 一致） ===== */
+const RICH_ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','FONT']);
+function sanitizeRichPrompt(html) {
+  if (!html) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = String(html);
+  (function walk(node) {
+    const kids = [...node.childNodes];
+    for (const c of kids) {
+      if (c.nodeType === 1) {
+        if (!RICH_ALLOWED_TAGS.has(c.tagName)) {
+          while (c.firstChild) c.parentNode.insertBefore(c.firstChild, c);
+          c.parentNode.removeChild(c);
+        } else {
+          const attrs = [...c.attributes];
+          let colorStr = null;
+          for (const a of attrs) {
+            const n = a.name.toLowerCase();
+            if (n === 'style') {
+              const m = a.value.match(/color:\s*([^;]+)/i);
+              if (m) colorStr = m[1].trim();
+            } else if (n === 'color') {
+              colorStr = a.value.trim();
+            }
+            c.removeAttribute(a.name);
+          }
+          if (colorStr && /^[a-z]+$|^#[0-9a-f]{3,8}$|^rgb\(/i.test(colorStr)) {
+            c.setAttribute('style', 'color: ' + colorStr);
+          }
+          walk(c);
+        }
+      } else if (c.nodeType === 8) {
+        c.parentNode.removeChild(c);
+      }
+    }
+  })(tmp);
+  return tmp.innerHTML;
+}
+function htmlToPlainText(html) {
+  if (!html) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = String(html);
+  tmp.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
+  tmp.querySelectorAll('p, div').forEach(el => el.appendChild(document.createTextNode('\n')));
+  return (tmp.textContent || '').replace(/\n{2,}/g, '\n').trim();
+}
+function promptToPlain(prompt, isHtml) {
+  if (!prompt) return '';
+  return isHtml ? htmlToPlainText(prompt) : prompt;
 }
 
 async function renderToolSections(user, history) {
@@ -1438,30 +1455,29 @@ async function renderToolSections(user, history) {
   Object.entries(TOOLS).forEach(([toolKey, tool]) => {
     const recs = history.filter(h => h.tool === toolKey);
 
-    // ===== 寫作測驗：用固定 40 格、4 種狀態 =====
+    // ===== 寫作測驗：固定 40 格、4 種狀態 =====
     if (tool.kind === 'writing') {
       const totalCount = tool.slots || 40;
-      // slotInfo[N] = { status: 'prepared'|'completed'|'commented', date, prompt, wordCount, hasComment, ... }
       const slotInfo = {};
       recs.forEach(r => {
         if (typeof r.slot !== 'number' || r.kind !== 'writing') return;
         if (isPreparedRec(r)) {
-          // 只在還沒有 completed 的時候放 prepared
           const cur = slotInfo[r.slot];
           if (!cur) {
             slotInfo[r.slot] = {
               status: 'prepared',
               date: r.date || '',
               prompt: r.prompt || '',
+              promptIsHtml: !!r.promptIsHtml,
             };
           } else if (cur.status === 'prepared' && r.date > cur.date) {
             slotInfo[r.slot] = {
               status: 'prepared',
               date: r.date || '',
               prompt: r.prompt || '',
+              promptIsHtml: !!r.promptIsHtml,
             };
           }
-          // 若已是 completed/commented，保留 — completed 優先
         } else if (isCompletedRec(r)) {
           const hasComment = !!(r.teacherComment && r.teacherComment.trim());
           const newStatus = hasComment ? 'commented' : 'completed';
@@ -1471,6 +1487,7 @@ async function renderToolSections(user, history) {
               status: newStatus,
               date: r.date || '',
               prompt: r.prompt || '',
+              promptIsHtml: !!r.promptIsHtml,
               wordCount: r.wordCount || 0,
               durationSeconds: r.durationSeconds || 0,
               hasComment,
@@ -1480,6 +1497,7 @@ async function renderToolSections(user, history) {
               status: newStatus,
               date: r.date || '',
               prompt: r.prompt || '',
+              promptIsHtml: !!r.promptIsHtml,
               wordCount: r.wordCount || 0,
               durationSeconds: r.durationSeconds || 0,
               hasComment,
@@ -1488,18 +1506,15 @@ async function renderToolSections(user, history) {
         }
       });
 
-      // 計算各狀態的數量
       let countCompleted = 0;
       let countPrepared = 0;
       for (let i = 1; i <= totalCount; i++) {
         const info = slotInfo[i];
         if (!info) continue;
         if (info.status === 'prepared') countPrepared++;
-        else countCompleted++;  // completed 或 commented
+        else countCompleted++;
       }
-      const countEmpty = totalCount - countCompleted - countPrepared;
 
-      // 找下一個可練習的 slot（給「→ 開始練習」按鈕）
       let nextPracticeSlot = null;
       for (let i = 1; i <= totalCount; i++) {
         if (slotInfo[i] && slotInfo[i].status === 'prepared') {
@@ -1507,7 +1522,6 @@ async function renderToolSections(user, history) {
           break;
         }
       }
-      // 找下一個空格（給「+ 準備新題目」按鈕）
       let nextEmptySlot = null;
       for (let i = 1; i <= totalCount; i++) {
         if (!slotInfo[i]) {
@@ -1516,7 +1530,6 @@ async function renderToolSections(user, history) {
         }
       }
 
-      // 完成的平均時間
       const completedRecs = recs.filter(r => isCompletedRec(r) && typeof r.durationSeconds === 'number' && r.durationSeconds > 0);
       let avgTimeHtml = '';
       if (completedRecs.length > 0) {
@@ -1526,7 +1539,6 @@ async function renderToolSections(user, history) {
         avgTimeHtml = '尚無寫作紀錄';
       }
 
-      // Buttons
       let buttonsHtml = '';
       if (nextPracticeSlot !== null) {
         const href = appendUrlParam(appendUrlParam(tool.url, 'user', user), 'slot', String(nextPracticeSlot));
@@ -1566,7 +1578,7 @@ async function renderToolSections(user, history) {
       return;
     }
 
-    // ===== 既有測驗：章節格子（保留原本邏輯） =====
+    // ===== 既有測驗：章節格子 =====
     const byChapter = {};
     recs.forEach(r => {
       const k = r.chapter || '?';
@@ -1620,9 +1632,7 @@ async function renderToolSections(user, history) {
   });
 }
 
-/* ===========================================================
-   寫作測驗用的 40 格 slot grid (4 種狀態)
-   =========================================================== */
+/* ===== 寫作測驗的 40 格 slot grid (4 種狀態) ===== */
 function renderWritingSlotGrid(container, tool, toolKey, totalCount, slotInfo, user) {
   const PER_ROW = 10;
   let html = `<div class="grid-label">作品進度（共 ${totalCount} 篇，每排 ${PER_ROW} 篇）</div><div class="chapter-grid">`;
@@ -1648,7 +1658,8 @@ function renderWritingSlotGrid(container, tool, toolKey, totalCount, slotInfo, u
           inner = num;
           tipHtml += '<br>可練習<br><span style="color:#bbb">點擊 → 學生開始考試</span>';
           if (info.prompt) {
-            const short = info.prompt.length > 30 ? info.prompt.slice(0, 30) + '…' : info.prompt;
+            const plain = promptToPlain(info.prompt, info.promptIsHtml);
+            const short = plain.length > 30 ? plain.slice(0, 30) + '…' : plain;
             tipHtml += '<br>題目：' + escapeHtmlForTip(short);
           }
           break;
@@ -1757,14 +1768,12 @@ function renderChapterGrid(container, tool, chapters, byChapter, user) {
 }
 
 function escapeHtmlForTip(s) {
-  // tooltip 在 HTML 內，所以要 escape；但保留簡單字元
   return escapeHtml(s).replace(/\n/g, ' ');
 }
 
 function renderHistoryTable(history) {
   const tbody = document.getElementById('history-tbody');
   tbody.innerHTML = '';
-  // 過濾掉 prepared（這些是「等待練習」的題目，不是已完成紀錄）
   const visible = history.filter(h => !(h.kind === 'writing' && h.status === 'prepared'));
   if (visible.length === 0) {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:32px; color:var(--gray); font-style:italic">— 尚未有紀錄 —</td></tr>`;
@@ -1801,7 +1810,6 @@ function renderHistoryTable(history) {
       ${pctCell}
     `;
     tbody.appendChild(tr);
-    // 展開列
     const detailTr = document.createElement('tr');
     detailTr.className = 'h-detail-row';
     detailTr.style.display = 'none';
@@ -1828,18 +1836,22 @@ function renderHistoryTable(history) {
 }
 
 function buildHistoryDetailHtml(h) {
-  // === 寫作測驗：顯示題目 + 作文 + 老師評語 ===
+  // === 寫作測驗 ===
   if (h.kind === 'writing') {
     const tool = TOOLS[h.tool] || { name: h.tool, url: 'writing.html?type=' + h.tool };
     const user = getCurrentUser();
-    const promptText = (h.prompt || '').trim();
+    const promptPlain = promptToPlain(h.prompt || '', !!h.promptIsHtml).trim();
     const essayText  = (h.essay || '').trim();
     const comment    = (h.teacherComment || '').trim();
     const reviewHref = appendUrlParam(appendUrlParam(tool.url, 'user', user), 'slot', String(h.slot || ''));
     let html = '<div class="h-writing-block">';
     html += '<div class="hw-label">題目 Prompt</div>';
-    if (promptText) {
-      html += '<div class="hw-prompt">' + escapeHtml(promptText) + '</div>';
+    if (promptPlain) {
+      if (h.promptIsHtml) {
+        html += '<div class="hw-prompt">' + sanitizeRichPrompt(h.prompt) + '</div>';
+      } else {
+        html += '<div class="hw-prompt">' + escapeHtml((h.prompt || '').trim()) + '</div>';
+      }
     } else {
       html += '<div class="hw-empty">（沒有填寫題目）</div>';
     }
@@ -1900,14 +1912,13 @@ function buildHistoryDetailHtml(h) {
   }
   return html;
 }
+
 document.getElementById('show-more-btn').addEventListener('click', () => {
   showAllHistory = !showAllHistory;
   renderHistoryTable(loadHistory(getCurrentUser()));
 });
 
-/* ===========================================================
-   設定 modal
-   =========================================================== */
+/* ===== 設定 modal ===== */
 function openSettingsModal() {
   const cfg = loadGistConfig() || {};
   document.getElementById('gist-id-input').value = cfg.gistId || '';
@@ -1919,7 +1930,6 @@ function openSettingsModal() {
 function closeSettingsModal() {
   document.getElementById('settings-modal').classList.remove('show');
 }
-
 document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
 document.getElementById('open-settings-from-profile').addEventListener('click', openSettingsModal);
 document.getElementById('settings-cancel-btn').addEventListener('click', closeSettingsModal);
@@ -1985,9 +1995,7 @@ document.getElementById('settings-disable-btn').addEventListener('click', () => 
   updateSyncPill();
 });
 
-/* ===========================================================
-   sync pill 顯示
-   =========================================================== */
+/* ===== sync pill ===== */
 function updateSyncPill(forceState, errorMsg) {
   const pill = document.getElementById('sync-pill');
   if (!pill) return;
@@ -2017,9 +2025,7 @@ function updateSyncPill(forceState, errorMsg) {
   }
 }
 
-/* ===========================================================
-   工具函式
-   =========================================================== */
+/* ===== 工具函式 ===== */
 function escapeHtml(s) {
   if (s == null) return '';
   return String(s)
@@ -2059,9 +2065,7 @@ function formatDateTime(iso) {
   return `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm}`;
 }
 
-/* ===========================================================
-   啟動
-   =========================================================== */
+/* ===== 啟動 ===== */
 (function bootstrap() {
   const urlParams = new URLSearchParams(location.search);
   const urlUser = urlParams.get('user') || '';
