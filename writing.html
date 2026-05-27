@@ -177,6 +177,7 @@
     font-size: 11px;
   }
 
+  /* 老師編輯區：用 white-space normal，行為跟學生看的版本一致（避免換行誤差） */
   .prompt-input {
     width: 100%;
     min-height: 180px;
@@ -193,7 +194,7 @@
     margin-bottom: 16px;
     text-align: left;
     outline: none;
-    white-space: pre-wrap;
+    white-space: normal;
     word-break: break-word;
   }
   .prompt-input:focus {
@@ -484,6 +485,10 @@
     background: var(--rule);
     border-radius: 4px;
   }
+  /* 顯示題目的 .prompt-content：
+     - 預設 white-space: pre-wrap（給純文字舊資料用）
+     - .is-html-prompt 時切換成 normal —— 結構 (<br>/<div>/<p>) 自己處理換行，
+       避免文字節點裡殘留的 \n 被當成額外換行而疊成多空行 */
   .prompt-pane .prompt-content {
     margin: auto 0;
     width: 100%;
@@ -496,9 +501,12 @@
     white-space: pre-wrap;
     word-break: break-word;
   }
+  .prompt-pane .prompt-content.is-html-prompt {
+    white-space: normal;
+  }
   .prompt-pane .prompt-content :first-child { margin-top: 0; }
   .prompt-pane .prompt-content :last-child  { margin-bottom: 0; }
-  /* 移除 p / div 預設 margin — 避免 contenteditable 產生的區塊元素帶來多餘空行 */
+  /* 移除 p / div 的瀏覽器預設 margin，所有題目區一律行距由 line-height 控制 */
   .prompt-pane .prompt-content p,
   .prompt-pane .prompt-content div,
   .prompt-input p,
@@ -506,6 +514,7 @@
   .prompt-preview p,
   .prompt-preview div {
     margin: 0;
+    padding: 0;
   }
 
   .prompt-input b, .prompt-input strong,
@@ -1136,7 +1145,7 @@ function sanitizeRichPrompt(html) {
       } else if (c.nodeType === 8) {
         c.parentNode.removeChild(c);
       } else if (c.nodeType === 3) {
-        // 純空白文字節點若夾在 block 元素旁邊，移除 — 避免 pre-wrap 多算成換行
+        // 純空白文字節點若夾在 block 旁邊就移除
         const txt = c.textContent;
         if (txt && /^\s+$/.test(txt) && (isBlockNode(c.previousSibling) || isBlockNode(c.nextSibling))) {
           c.parentNode.removeChild(c);
@@ -1171,12 +1180,19 @@ function firstSentence(text) {
   return firstLine.slice(0, 100) + '…';
 }
 
+/* 把 prompt 寫到指定 DOM；isHtml 時切換 white-space 模式 */
 function renderPromptInto(el, prompt, isHtml) {
-  if (!prompt) { el.textContent = ''; return; }
+  if (!prompt) {
+    el.textContent = '';
+    el.classList.remove('is-html-prompt');
+    return;
+  }
   if (isHtml) {
     el.innerHTML = sanitizeRichPrompt(prompt);
+    el.classList.add('is-html-prompt');   // → white-space: normal
   } else {
     el.textContent = prompt;
+    el.classList.remove('is-html-prompt'); // → white-space: pre-wrap (純文字舊資料)
   }
 }
 
