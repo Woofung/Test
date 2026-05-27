@@ -26,9 +26,7 @@
     --narrative: #4a7c3a;
     --opinion:   #a06234;
     --informational: #3a6f7a;
-    /* 題目專用字型：中英文都用系統無襯線體，粗體 / 紅色對比最明顯 */
     --font-prompt: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', 'Heiti TC', 'Noto Sans TC', system-ui, sans-serif;
-    /* 黏附定位用 — JS 會根據 header 高度動態更新 */
     --sticky-offset: 68px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -48,10 +46,8 @@
     z-index: 0;
   }
 
-  /* ====== Common ====== */
   .hidden { display: none !important; }
 
-  /* ====== Back button (top-left) — fixed,所以不會被 sticky 蓋住 ====== */
   .back-home {
     position: fixed;
     top: 14px;
@@ -74,7 +70,6 @@
     border-color: var(--ink);
   }
 
-  /* ====== Setup card共用樣式 ====== */
   .center-screen {
     min-height: 100vh;
     display: flex;
@@ -149,7 +144,6 @@
     font-style: normal;
   }
 
-  /* ====== Rich-text toolbar (teacher prompt) ====== */
   .rich-toolbar {
     display: flex;
     gap: 6px;
@@ -183,7 +177,6 @@
     font-size: 11px;
   }
 
-  /* Prompt rich-text editor (teacher setup) */
   .prompt-input {
     width: 100%;
     min-height: 180px;
@@ -213,7 +206,6 @@
     pointer-events: none;
   }
 
-  /* Prompt preview (practice setup) */
   .prompt-preview {
     background: var(--paper);
     border: 1px dashed var(--rule);
@@ -363,12 +355,10 @@
   }
   .text-link:hover { color: var(--accent); text-decoration: underline; }
 
-  /* ====== Exam / Review screen ====== */
   #exam-screen {
     position: relative;
     z-index: 1;
   }
-  /* Header 黏在頂端 */
   .exam-header {
     position: sticky;
     top: 0;
@@ -410,7 +400,6 @@
     padding-left: 12px;
   }
 
-  /* === Timer === */
   .timer-wrap {
     display: flex;
     align-items: center;
@@ -448,11 +437,10 @@
   }
   .timer-meta .ended-text { color: var(--accent); font-style: normal; }
 
-  /* === Main 3-column layout: 1/4 | 2/4 | 1/4 === */
   .exam-main {
     display: grid;
     grid-template-columns: 1fr 2fr 1fr;
-    align-items: start;    /* ← 不要把面板拉到列高，讓 sticky 可以運作 */
+    align-items: start;
     gap: 18px;
     padding: 18px 24px 24px;
   }
@@ -476,7 +464,6 @@
     flex-shrink: 0;
   }
 
-  /* === Prompt pane：sticky 黏附 + 高度限制在一個視窗高度，內部自己捲動 === */
   .prompt-pane {
     position: sticky;
     top: var(--sticky-offset);
@@ -498,7 +485,7 @@
     border-radius: 4px;
   }
   .prompt-pane .prompt-content {
-    margin: auto 0;          /* 短內容置中、長內容靠頂同時可滾動 */
+    margin: auto 0;
     width: 100%;
     text-align: center;
     padding: 18px 12px;
@@ -511,8 +498,16 @@
   }
   .prompt-pane .prompt-content :first-child { margin-top: 0; }
   .prompt-pane .prompt-content :last-child  { margin-bottom: 0; }
+  /* 移除 p / div 預設 margin — 避免 contenteditable 產生的區塊元素帶來多餘空行 */
+  .prompt-pane .prompt-content p,
+  .prompt-pane .prompt-content div,
+  .prompt-input p,
+  .prompt-input div,
+  .prompt-preview p,
+  .prompt-preview div {
+    margin: 0;
+  }
 
-  /* === 題目區的 inline 強調 === */
   .prompt-input b, .prompt-input strong,
   .prompt-pane .prompt-content b, .prompt-pane .prompt-content strong,
   .prompt-preview b, .prompt-preview strong {
@@ -530,7 +525,6 @@
     text-underline-offset: 2px;
   }
 
-  /* === Essay pane：自動長高（JS 控制），不再有內部 scrollbar === */
   .essay-pane textarea {
     width: 100%;
     border: 0;
@@ -542,8 +536,8 @@
     color: var(--ink);
     padding: 6px 4px;
     outline: none;
-    min-height: 60vh;        /* 起始高度 */
-    overflow: hidden;        /* 不要 textarea 自己的捲軸；高度交給 JS */
+    min-height: 60vh;
+    overflow: hidden;
     display: block;
   }
   .essay-pane textarea::placeholder { color: var(--gray); font-style: italic; }
@@ -575,7 +569,6 @@
   }
   .essay-meta .save-status.saved { color: var(--green); }
 
-  /* === Revise (in review mode) === */
   .essay-revise-row {
     margin-top: 10px;
     display: flex;
@@ -624,7 +617,6 @@
     border-radius: 2px;
   }
 
-  /* === Comment pane（同樣自動長高） === */
   .comment-pane.empty-during-exam {
     background: transparent;
     border: 1px dashed var(--rule-light);
@@ -693,7 +685,6 @@
   }
   .comment-save-row .comment-saved-msg.show { opacity: 1; }
 
-  /* === Footer === */
   .exam-footer {
     padding: 14px 24px 22px;
     display: flex;
@@ -740,7 +731,6 @@
     filter: brightness(0.92);
   }
 
-  /* === Time up red border === */
   body.time-up::after {
     content: '';
     position: fixed;
@@ -755,7 +745,6 @@
     50% { opacity: 0.4; }
   }
 
-  /* === Submitted overlay === */
   #submitted-overlay {
     position: fixed;
     inset: 0;
@@ -815,7 +804,6 @@
   }
   .submitted-card .sub-actions .secondary:hover { background: var(--paper-card); }
 
-  /* === Review banner（也黏在 header 下方） === */
   .review-banner {
     position: sticky;
     top: var(--sticky-offset);
@@ -844,7 +832,6 @@
     font-style: normal;
   }
 
-  /* ====== Responsive ====== */
   @media (max-width: 900px) {
     .exam-header { padding: 14px 16px 12px 64px; }
     .review-banner { padding-left: 64px; }
@@ -853,7 +840,6 @@
       gap: 14px;
       padding: 16px;
     }
-    /* 小螢幕：取消 sticky（會卡）；改成一般 block 流 */
     .prompt-pane {
       position: static;
       max-height: 60vh;
@@ -868,7 +854,6 @@
 
 <a class="back-home" id="back-home-link" href="index.html">← 學習中心</a>
 
-<!-- ====== Teacher Setup screen ====== -->
 <div id="teacher-setup-screen" class="center-screen hidden">
   <div class="setup-card">
     <div class="role-tag">TEACHER SETUP</div>
@@ -911,7 +896,6 @@
   </div>
 </div>
 
-<!-- ====== Practice Setup screen ====== -->
 <div id="practice-setup-screen" class="center-screen hidden">
   <div class="setup-card">
     <div class="role-tag">PRACTICE</div>
@@ -948,7 +932,6 @@
   </div>
 </div>
 
-<!-- ====== Exam / Review screen ====== -->
 <div id="exam-screen" class="hidden">
   <div class="review-banner hidden" id="review-banner">
     <span class="review-tag">REVIEW</span>
@@ -970,14 +953,12 @@
   </div>
 
   <div class="exam-main">
-    <!-- 1/4 prompt (sticky) -->
     <div class="pane prompt-pane">
       <div class="pane-label">題目 Prompt</div>
       <div class="prompt-scroll" id="prompt-scroll">
         <div class="prompt-content" id="prompt-content"></div>
       </div>
     </div>
-    <!-- 2/4 essay (auto-grow) -->
     <div class="pane essay-pane" id="essay-pane">
       <div class="pane-label">作文 Essay</div>
       <textarea id="essay-text"
@@ -1001,7 +982,6 @@
         <span class="revise-saved-msg" id="essay-revise-saved-msg">✓ 已儲存</span>
       </div>
     </div>
-    <!-- 1/4 comment (auto-grow) -->
     <div class="pane comment-pane empty-during-exam" id="comment-pane">
       <div class="pane-label">老師評語 Teacher's Comment</div>
       <div class="comment-placeholder" id="comment-placeholder">
@@ -1029,7 +1009,6 @@
   </div>
 </div>
 
-<!-- ====== Submitted overlay ====== -->
 <div id="submitted-overlay">
   <div class="submitted-card">
     <div class="sub-icon">✓</div>
@@ -1049,18 +1028,9 @@ const HOME_URL = 'index.html';
 const TOTAL_SLOTS = 40;
 
 const TYPE_CONFIG = {
-  narrative: {
-    zh: '敘事寫作', en: 'Narrative Writing',
-    color: '#4a7c3a', icon: '✒️'
-  },
-  opinion: {
-    zh: '觀點寫作', en: 'Opinion Writing',
-    color: '#a06234', icon: '💭'
-  },
-  informational: {
-    zh: '資訊寫作', en: 'Informational Writing',
-    color: '#3a6f7a', icon: '📝'
-  }
+  narrative: { zh: '敘事寫作', en: 'Narrative Writing', color: '#4a7c3a', icon: '✒️' },
+  opinion:   { zh: '觀點寫作', en: 'Opinion Writing',   color: '#a06234', icon: '💭' },
+  informational: { zh: '資訊寫作', en: 'Informational Writing', color: '#3a6f7a', icon: '📝' }
 };
 
 const params = new URLSearchParams(location.search);
@@ -1126,12 +1096,16 @@ async function pushToGist(u) {
 
 /* ===== 富文字 sanitizer + helpers ===== */
 const ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','FONT']);
+const BLOCK_TAGS = new Set(['P','DIV']);
 
 function sanitizeRichPrompt(html) {
   if (!html) return '';
   const tmp = document.createElement('div');
   tmp.innerHTML = String(html);
   walk(tmp);
+  function isBlockNode(n) {
+    return n && n.nodeType === 1 && BLOCK_TAGS.has(n.tagName);
+  }
   function walk(node) {
     const kids = [...node.childNodes];
     for (const c of kids) {
@@ -1161,6 +1135,12 @@ function sanitizeRichPrompt(html) {
         }
       } else if (c.nodeType === 8) {
         c.parentNode.removeChild(c);
+      } else if (c.nodeType === 3) {
+        // 純空白文字節點若夾在 block 元素旁邊，移除 — 避免 pre-wrap 多算成換行
+        const txt = c.textContent;
+        if (txt && /^\s+$/.test(txt) && (isBlockNode(c.previousSibling) || isBlockNode(c.nextSibling))) {
+          c.parentNode.removeChild(c);
+        }
       }
     }
   }
@@ -1203,12 +1183,9 @@ function renderPromptInto(el, prompt, isHtml) {
 /* ===== 自動長高 textarea ===== */
 function autoResizeTextarea(ta) {
   if (!ta) return;
-  // 先把高度收回 auto 才能精準量到 scrollHeight
   ta.style.height = 'auto';
-  // 加 2px 緩衝避免最後一行被裁掉
   ta.style.height = (ta.scrollHeight + 2) + 'px';
 }
-
 function setupAutoResize(taId) {
   const ta = document.getElementById(taId);
   if (!ta) return;
@@ -1216,11 +1193,10 @@ function setupAutoResize(taId) {
     ta._autoResizeBound = true;
     ta.addEventListener('input', () => autoResizeTextarea(ta));
   }
-  // 初始：確保 DOM 已 layout 之後再量
   requestAnimationFrame(() => autoResizeTextarea(ta));
 }
 
-/* ===== 動態計算 sticky offset（header + review banner 的高度） ===== */
+/* ===== 動態計算 sticky offset ===== */
 function updateStickyOffset() {
   let offset = 0;
   const header = document.querySelector('.exam-header');
@@ -1235,7 +1211,6 @@ function updateStickyOffset() {
 }
 window.addEventListener('resize', () => {
   updateStickyOffset();
-  // 視窗大小變化也要重新計算 textarea 高度
   ['essay-text', 'comment-text'].forEach(id => {
     const ta = document.getElementById(id);
     if (ta && !ta.classList.contains('hidden')) autoResizeTextarea(ta);
@@ -1288,7 +1263,6 @@ function fmtDate(iso) {
   return `${yyyy}/${mm}/${dd} ${hh}:${mi}`;
 }
 
-/* === Beep === */
 let audioCtx = null;
 function ensureAudio() {
   if (!audioCtx) {
@@ -1321,13 +1295,11 @@ function playEndBeeps() {
   } catch (e) {}
 }
 
-/* ===== 紀錄狀態 ===== */
 function isPreparedRecord(r) {
   return r && r.kind === 'writing' && r.status === 'prepared';
 }
 function isCompletedRecord(r) {
-  return r && r.kind === 'writing' && r.status !== 'prepared'
-    && typeof r.slot === 'number';
+  return r && r.kind === 'writing' && r.status !== 'prepared' && typeof r.slot === 'number';
 }
 
 function findPreparedForSlot(slot) {
@@ -1341,7 +1313,6 @@ function findPreparedForSlot(slot) {
   }
   return best;
 }
-
 function findCompletedForSlot(slot) {
   const hist = loadHistory(user);
   let best = null;
@@ -1353,7 +1324,6 @@ function findCompletedForSlot(slot) {
   }
   return best;
 }
-
 function findNextPreparedSlot() {
   const hist = loadHistory(user);
   const completed = new Set();
@@ -1368,7 +1338,6 @@ function findNextPreparedSlot() {
   }
   return null;
 }
-
 function findNextEmptySlot() {
   const hist = loadHistory(user);
   const filled = new Set();
@@ -1382,7 +1351,6 @@ function findNextEmptySlot() {
   return null;
 }
 
-/* ===== 草稿 ===== */
 function loadDraft(slot) {
   try {
     const raw = localStorage.getItem(lsDraftKey(user, type, slot));
@@ -1398,20 +1366,16 @@ function clearDraft(slot) {
   catch (e) {}
 }
 
-/* ===== Teacher setup ===== */
 function initTeacherSetup(slot) {
   mode = 'teacher-setup';
   activeSlot = slot;
-
   $('teacher-setup-screen').classList.remove('hidden');
   $('practice-setup-screen').classList.add('hidden');
   $('exam-screen').classList.add('hidden');
-
   $('teacher-setup-title').textContent = cfg.icon + ' 準備題目';
   $('teacher-setup-subtitle').textContent = '— ' + cfg.zh + ' Set Prompt —';
   $('teacher-setup-user').textContent = user;
   $('teacher-setup-slot').textContent = String(slot);
-
   const existing = findPreparedForSlot(slot);
   const input = $('teacher-prompt-input');
   if (existing) {
@@ -1430,21 +1394,11 @@ function execEditorCmd(cmd) {
   const input = $('teacher-prompt-input');
   input.focus();
   switch (cmd) {
-    case 'bold':
-      document.execCommand('bold', false, null);
-      break;
-    case 'italic':
-      document.execCommand('italic', false, null);
-      break;
-    case 'underline':
-      document.execCommand('underline', false, null);
-      break;
-    case 'red':
-      document.execCommand('foreColor', false, '#c9392c');
-      break;
-    case 'default-color':
-      document.execCommand('foreColor', false, '#2a2620');
-      break;
+    case 'bold': document.execCommand('bold', false, null); break;
+    case 'italic': document.execCommand('italic', false, null); break;
+    case 'underline': document.execCommand('underline', false, null); break;
+    case 'red': document.execCommand('foreColor', false, '#c9392c'); break;
+    case 'default-color': document.execCommand('foreColor', false, '#2a2620'); break;
     case 'reset':
       document.execCommand('removeFormat', false, null);
       document.execCommand('foreColor', false, '#2a2620');
@@ -1474,13 +1428,9 @@ $('teacher-save-btn').addEventListener('click', () => {
   const hist = loadHistory(user);
   const filtered = hist.filter(r => !(r.tool === type && r.slot === activeSlot && isPreparedRecord(r)));
   filtered.push({
-    tool: type,
-    kind: 'writing',
-    status: 'prepared',
-    chapter: 'Essay ' + activeSlot,
-    slot: activeSlot,
-    prompt: html,
-    promptIsHtml: true,
+    tool: type, kind: 'writing', status: 'prepared',
+    chapter: 'Essay ' + activeSlot, slot: activeSlot,
+    prompt: html, promptIsHtml: true,
     correct: 0, wrong: 0, total: 0,
     date: new Date().toISOString()
   });
@@ -1493,16 +1443,13 @@ $('teacher-cancel-btn').addEventListener('click', () => {
   location.href = HOME_URL + '?user=' + encodeURIComponent(user);
 });
 
-/* ===== Practice setup ===== */
 function initPracticeSetup(slot, prepared) {
   mode = 'practice-setup';
   activeSlot = slot;
   preparedRecord = prepared;
-
   $('teacher-setup-screen').classList.add('hidden');
   $('practice-setup-screen').classList.remove('hidden');
   $('exam-screen').classList.add('hidden');
-
   $('practice-setup-title').textContent = cfg.icon + ' 開始寫作';
   $('practice-setup-subtitle').textContent = '— ' + cfg.en + ' —';
   $('practice-setup-user').textContent = user;
@@ -1576,7 +1523,6 @@ $('practice-edit-prompt-link').addEventListener('click', () => {
   initTeacherSetup(activeSlot);
 });
 
-/* ===== 進入考試 ===== */
 function startExam(remainSec, initialPrompt, initialPromptIsHtml, initialEssay) {
   mode = 'exam';
   isLocked = false;
@@ -1630,7 +1576,6 @@ function startExam(remainSec, initialPrompt, initialPromptIsHtml, initialEssay) 
 
   window.addEventListener('beforeunload', beforeUnloadHandler);
 
-  // 黏附定位 + 文字框自動高度（DOM 已可見才能量到）
   requestAnimationFrame(() => {
     updateStickyOffset();
     setupAutoResize('essay-text');
@@ -1652,7 +1597,6 @@ function updateWordCount() {
   $('word-count').textContent = String(c);
 }
 
-/* === 計時器 === */
 function startTimer() {
   if (timerInterval) clearInterval(timerInterval);
   renderTimer();
@@ -1687,7 +1631,6 @@ function stopTimer() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 }
 
-/* === 草稿自動存 === */
 function startDraftAutoSave() {
   if (draftSaveInterval) clearInterval(draftSaveInterval);
   draftSaveInterval = setInterval(autoSaveDraft, 3000);
@@ -1710,7 +1653,6 @@ function autoSaveDraft() {
   ss.classList.add('saved');
 }
 
-/* === 時間到 === */
 function triggerTimeUp() {
   if (isLocked) return;
   stopTimer();
@@ -1719,7 +1661,6 @@ function triggerTimeUp() {
   finalizeAndSave('time-up');
 }
 
-/* === 提早交卷 === */
 $('submit-btn').addEventListener('click', () => {
   if (mode !== 'exam' || isLocked) return;
   const wc = countWords($('essay-text').value);
@@ -1751,17 +1692,11 @@ function finalizeAndSave(reason) {
     r.tool === type && r.slot === activeSlot && isPreparedRecord(r)
   ));
   const record = {
-    tool: type,
-    kind: 'writing',
-    status: 'completed',
-    chapter: 'Essay ' + activeSlot,
-    slot: activeSlot,
-    prompt: activePromptHtml,
-    promptIsHtml: activePromptIsHtml,
-    essay: essayVal,
-    wordCount: wc,
-    plannedMinutes,
-    durationSeconds: usedSec,
+    tool: type, kind: 'writing', status: 'completed',
+    chapter: 'Essay ' + activeSlot, slot: activeSlot,
+    prompt: activePromptHtml, promptIsHtml: activePromptIsHtml,
+    essay: essayVal, wordCount: wc,
+    plannedMinutes, durationSeconds: usedSec,
     teacherComment: '',
     correct: 0, wrong: 0, total: 0,
     date: new Date().toISOString(),
@@ -1771,7 +1706,6 @@ function finalizeAndSave(reason) {
   saveHistoryArray(user, filtered);
   clearDraft(activeSlot);
   pushToGist(user);
-
   showSubmittedOverlay(record);
 }
 
@@ -1793,7 +1727,6 @@ $('submitted-review').addEventListener('click', () => {
   location.href = location.pathname + '?type=' + encodeURIComponent(type) + '&user=' + encodeURIComponent(user) + '&slot=' + encodeURIComponent(activeSlot);
 });
 
-/* ===== Review ===== */
 function initReview(slot, rec) {
   reviewRecord = rec;
   activeSlot = slot;
@@ -1845,10 +1778,8 @@ function initReview(slot, rec) {
 
   $('submit-btn').classList.add('hidden');
   $('footer-info').textContent = '檢視模式 — 可修改文章 / 老師評語，題目已鎖定。';
-
   $('back-home-link').href = HOME_URL + '?user=' + encodeURIComponent(user);
 
-  // 評語也要可以 input 時自動長高
   $('comment-text').oninput = function() {
     autoResizeTextarea(this);
   };
@@ -1872,7 +1803,6 @@ $('essay-revise-btn').addEventListener('click', () => {
   $('essay-text').focus();
   const ta = $('essay-text');
   try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
-  // 改文章模式也要每次 input 都 resize + 字數
   $('essay-text').oninput = function() {
     updateWordCount();
     autoResizeTextarea(this);
@@ -1949,7 +1879,6 @@ $('comment-save-btn').addEventListener('click', () => {
   }
 });
 
-/* ===== 啟動 ===== */
 $('back-home-link').href = HOME_URL + '?user=' + encodeURIComponent(user);
 
 function routeBySlot(slot) {

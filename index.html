@@ -27,7 +27,6 @@
     --narrative: #4a7c3a;
     --opinion: #a06234;
     --informational: #3a6f7a;
-    /* 題目專用字型：中英文都用系統無襯線體 */
     --font-prompt: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', 'Heiti TC', 'Noto Sans TC', system-ui, sans-serif;
   }
 
@@ -458,7 +457,6 @@
     padding: 14px 0;
   }
 
-  /* === 寫作測驗的 4 種格子 === */
   .chapter-cell.writing-empty {
     background: var(--paper-dark);
     border-color: var(--rule-light);
@@ -680,7 +678,6 @@
   .tag.opinion        { background: rgba(160, 98, 52, 0.12); color: var(--opinion); }
   .tag.informational  { background: rgba(58, 111, 122, 0.12); color: var(--informational); }
 
-  /* === 寫作紀錄展開 === */
   .h-writing-block {
     margin-top: 6px;
   }
@@ -706,7 +703,6 @@
     word-break: break-word;
     border-radius: 2px;
   }
-  /* 富文字題目支援的 inline 格式 — 粗體用 heavy 重量 */
   .h-writing-block .hw-prompt b,
   .h-writing-block .hw-prompt strong { font-weight: 800; }
   .h-writing-block .hw-prompt i,
@@ -714,6 +710,11 @@
   .h-writing-block .hw-prompt u {
     text-decoration: underline;
     text-underline-offset: 2px;
+  }
+  /* 移除 p / div 預設 margin — 避免多餘空行 */
+  .h-writing-block .hw-prompt p,
+  .h-writing-block .hw-prompt div {
+    margin: 0;
   }
   .h-writing-block .hw-essay {
     background: var(--paper-card);
@@ -930,7 +931,6 @@
 
 <div id="main-screen" class="hidden">
   <div class="container">
-
     <div class="topbar">
       <div class="brand">
         <h1>學習中心</h1>
@@ -968,7 +968,6 @@
       </table>
       <button class="show-more-btn" id="show-more-btn" style="display:none">顯示全部</button>
     </div>
-
   </div>
 </div>
 
@@ -1019,61 +1018,34 @@ const CHARS_EXCEL_URL = 'characters.xlsx';
 
 const TOOLS = {
   spelling: {
-    name: '英文拼字',
-    nameEn: 'Spelling Quiz',
-    icon: '✏️',
-    desc: '看中文，打英文',
-    url: 'spelling.html',
-    cls: 'spelling',
-    excelSource: 'vocab',
+    name: '英文拼字', nameEn: 'Spelling Quiz', icon: '✏️',
+    desc: '看中文，打英文', url: 'spelling.html',
+    cls: 'spelling', excelSource: 'vocab',
   },
   vocab: {
-    name: '英文翻譯',
-    nameEn: 'Vocabulary Quiz',
-    icon: '📖',
-    desc: '看英文，選中文',
-    url: 'EnglishDefinition.html',
-    cls: 'vocab',
-    excelSource: 'vocab',
+    name: '英文翻譯', nameEn: 'Vocabulary Quiz', icon: '📖',
+    desc: '看英文，選中文', url: 'EnglishDefinition.html',
+    cls: 'vocab', excelSource: 'vocab',
   },
   chinese: {
-    name: '中文發音',
-    nameEn: 'Pronunciation',
-    icon: '🗣️',
-    desc: '看字念注音',
-    url: 'chinese.html',
-    cls: 'chinese',
-    excelSource: 'chars',
+    name: '中文發音', nameEn: 'Pronunciation', icon: '🗣️',
+    desc: '看字念注音', url: 'chinese.html',
+    cls: 'chinese', excelSource: 'chars',
   },
   narrative: {
-    name: 'Narrative Writing',
-    nameEn: '敘事寫作',
-    icon: '✒️',
-    desc: '寫一段故事',
-    url: 'writing.html?type=narrative',
-    cls: 'narrative',
-    kind: 'writing',
-    slots: 40,
+    name: 'Narrative Writing', nameEn: '敘事寫作', icon: '✒️',
+    desc: '寫一段故事', url: 'writing.html?type=narrative',
+    cls: 'narrative', kind: 'writing', slots: 40,
   },
   opinion: {
-    name: 'Opinion Writing',
-    nameEn: '觀點寫作',
-    icon: '💭',
-    desc: '陳述你的看法',
-    url: 'writing.html?type=opinion',
-    cls: 'opinion',
-    kind: 'writing',
-    slots: 40,
+    name: 'Opinion Writing', nameEn: '觀點寫作', icon: '💭',
+    desc: '陳述你的看法', url: 'writing.html?type=opinion',
+    cls: 'opinion', kind: 'writing', slots: 40,
   },
   informational: {
-    name: 'Informational Writing',
-    nameEn: '資訊寫作',
-    icon: '📝',
-    desc: '提供說明與資訊',
-    url: 'writing.html?type=informational',
-    cls: 'informational',
-    kind: 'writing',
-    slots: 40,
+    name: 'Informational Writing', nameEn: '資訊寫作', icon: '📝',
+    desc: '提供說明與資訊', url: 'writing.html?type=informational',
+    cls: 'informational', kind: 'writing', slots: 40,
   },
 };
 
@@ -1111,10 +1083,7 @@ function saveGistConfig(cfg) {
   else localStorage.removeItem(LS_GIST_CONFIG);
 }
 
-const chapterListCache = {
-  vocab: null,
-  chars: null,
-};
+const chapterListCache = { vocab: null, chars: null };
 
 async function loadChapterList(source) {
   if (chapterListCache[source]) return chapterListCache[source];
@@ -1154,14 +1123,11 @@ async function loadChapterList(source) {
 }
 
 const SyncManager = {
-  status: 'off',
-  lastError: '',
-
+  status: 'off', lastError: '',
   isEnabled() {
     const cfg = loadGistConfig();
     return !!(cfg && cfg.gistId && cfg.token);
   },
-
   async fetchGist(gistId, token) {
     const r = await fetch(`https://api.github.com/gists/${gistId}`, {
       headers: {
@@ -1172,7 +1138,6 @@ const SyncManager = {
     if (!r.ok) throw new Error(`GitHub API ${r.status}: ${r.statusText}`);
     return r.json();
   },
-
   async patchGist(gistId, token, files) {
     const r = await fetch(`https://api.github.com/gists/${gistId}`, {
       method: 'PATCH',
@@ -1189,11 +1154,9 @@ const SyncManager = {
     }
     return r.json();
   },
-
   fileNameFor(user) {
     return 'profile-' + encodeURIComponent(user) + '.json';
   },
-
   mergeRecords(local, remote) {
     const seen = new Set();
     const out = [];
@@ -1207,7 +1170,6 @@ const SyncManager = {
     out.sort((a, b) => a.date.localeCompare(b.date));
     return out;
   },
-
   async pullForUser(user) {
     const cfg = loadGistConfig();
     if (!cfg || !cfg.gistId || !cfg.token) return null;
@@ -1225,14 +1187,12 @@ const SyncManager = {
       return [];
     }
   },
-
   async pushForUser(user, records) {
     const cfg = loadGistConfig();
     if (!cfg || !cfg.gistId || !cfg.token) return;
     const fname = this.fileNameFor(user);
     const content = JSON.stringify({
-      version: 1,
-      user: user,
+      version: 1, user: user,
       updatedAt: new Date().toISOString(),
       records
     }, null, 2);
@@ -1240,7 +1200,6 @@ const SyncManager = {
       [fname]: { content }
     });
   },
-
   async syncForUser(user) {
     if (!this.isEnabled()) {
       this.status = 'off';
@@ -1266,7 +1225,6 @@ const SyncManager = {
       return { ok: false, error: this.lastError };
     }
   },
-
   async testConnection(gistId, token) {
     try {
       const gist = await this.fetchGist(gistId, token);
@@ -1376,10 +1334,14 @@ function isCompletedRec(r) {
 
 /* === 富文字題目 sanitizer + helpers === */
 const RICH_ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','FONT']);
+const RICH_BLOCK_TAGS = new Set(['P','DIV']);
 function sanitizeRichPrompt(html) {
   if (!html) return '';
   const tmp = document.createElement('div');
   tmp.innerHTML = String(html);
+  function isBlockNode(n) {
+    return n && n.nodeType === 1 && RICH_BLOCK_TAGS.has(n.tagName);
+  }
   (function walk(node) {
     const kids = [...node.childNodes];
     for (const c of kids) {
@@ -1407,6 +1369,11 @@ function sanitizeRichPrompt(html) {
         }
       } else if (c.nodeType === 8) {
         c.parentNode.removeChild(c);
+      } else if (c.nodeType === 3) {
+        const txt = c.textContent;
+        if (txt && /^\s+$/.test(txt) && (isBlockNode(c.previousSibling) || isBlockNode(c.nextSibling))) {
+          c.parentNode.removeChild(c);
+        }
       }
     }
   })(tmp);
@@ -1433,9 +1400,7 @@ async function renderToolSections(user, history) {
     loadChapterList('chars')
   ]);
   const chapterListByTool = {
-    spelling: vocabChapters,
-    vocab: vocabChapters,
-    chinese: charsChapters,
+    spelling: vocabChapters, vocab: vocabChapters, chinese: charsChapters,
   };
   Object.entries(TOOLS).forEach(([toolKey, tool]) => {
     const recs = history.filter(h => h.tool === toolKey);
@@ -1449,17 +1414,13 @@ async function renderToolSections(user, history) {
           const cur = slotInfo[r.slot];
           if (!cur) {
             slotInfo[r.slot] = {
-              status: 'prepared',
-              date: r.date || '',
-              prompt: r.prompt || '',
-              promptIsHtml: !!r.promptIsHtml,
+              status: 'prepared', date: r.date || '',
+              prompt: r.prompt || '', promptIsHtml: !!r.promptIsHtml,
             };
           } else if (cur.status === 'prepared' && r.date > cur.date) {
             slotInfo[r.slot] = {
-              status: 'prepared',
-              date: r.date || '',
-              prompt: r.prompt || '',
-              promptIsHtml: !!r.promptIsHtml,
+              status: 'prepared', date: r.date || '',
+              prompt: r.prompt || '', promptIsHtml: !!r.promptIsHtml,
             };
           }
         } else if (isCompletedRec(r)) {
@@ -1468,20 +1429,16 @@ async function renderToolSections(user, history) {
           const cur = slotInfo[r.slot];
           if (!cur || cur.status === 'prepared') {
             slotInfo[r.slot] = {
-              status: newStatus,
-              date: r.date || '',
-              prompt: r.prompt || '',
-              promptIsHtml: !!r.promptIsHtml,
+              status: newStatus, date: r.date || '',
+              prompt: r.prompt || '', promptIsHtml: !!r.promptIsHtml,
               wordCount: r.wordCount || 0,
               durationSeconds: r.durationSeconds || 0,
               hasComment,
             };
           } else if (r.date > cur.date) {
             slotInfo[r.slot] = {
-              status: newStatus,
-              date: r.date || '',
-              prompt: r.prompt || '',
-              promptIsHtml: !!r.promptIsHtml,
+              status: newStatus, date: r.date || '',
+              prompt: r.prompt || '', promptIsHtml: !!r.promptIsHtml,
               wordCount: r.wordCount || 0,
               durationSeconds: r.durationSeconds || 0,
               hasComment,
