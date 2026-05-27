@@ -28,6 +28,8 @@
     --informational: #3a6f7a;
     /* 題目專用字型：中英文都用系統無襯線體，粗體 / 紅色對比最明顯 */
     --font-prompt: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', 'Heiti TC', 'Noto Sans TC', system-ui, sans-serif;
+    /* 黏附定位用 — JS 會根據 header 高度動態更新 */
+    --sticky-offset: 68px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
@@ -49,7 +51,7 @@
   /* ====== Common ====== */
   .hidden { display: none !important; }
 
-  /* ====== Back button (top-left) ====== */
+  /* ====== Back button (top-left) — fixed,所以不會被 sticky 蓋住 ====== */
   .back-home {
     position: fixed;
     top: 14px;
@@ -59,7 +61,7 @@
     font-size: 13px;
     letter-spacing: 1px;
     color: var(--ink-soft);
-    background: rgba(244, 237, 224, 0.85);
+    background: rgba(244, 237, 224, 0.92);
     padding: 6px 12px;
     border: 1px solid var(--rule);
     border-radius: 2px;
@@ -363,13 +365,14 @@
 
   /* ====== Exam / Review screen ====== */
   #exam-screen {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
     position: relative;
     z-index: 1;
   }
+  /* Header 黏在頂端 */
   .exam-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
     border-bottom: 1.5px solid var(--ink);
     padding: 14px 24px 12px 70px;
     background: var(--paper);
@@ -447,12 +450,11 @@
 
   /* === Main 3-column layout: 1/4 | 2/4 | 1/4 === */
   .exam-main {
-    flex: 1;
     display: grid;
     grid-template-columns: 1fr 2fr 1fr;
+    align-items: start;    /* ← 不要把面板拉到列高，讓 sticky 可以運作 */
     gap: 18px;
     padding: 18px 24px 24px;
-    min-height: 0;
   }
   .pane {
     background: var(--paper-card);
@@ -460,7 +462,6 @@
     padding: 18px;
     display: flex;
     flex-direction: column;
-    min-height: 60vh;
     position: relative;
   }
   .pane-label {
@@ -475,13 +476,19 @@
     flex-shrink: 0;
   }
 
-  /* Prompt pane — 滾動容器 + margin:auto 讓短內容置中、長內容可滾動 */
+  /* === Prompt pane：sticky 黏附 + 高度限制在一個視窗高度，內部自己捲動 === */
+  .prompt-pane {
+    position: sticky;
+    top: var(--sticky-offset);
+    max-height: calc(100vh - var(--sticky-offset) - 16px);
+    align-self: start;
+  }
   .prompt-pane .prompt-scroll {
     flex: 1;
+    min-height: 200px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    min-height: 0;
     scrollbar-width: thin;
     scrollbar-color: var(--rule) transparent;
   }
@@ -491,7 +498,7 @@
     border-radius: 4px;
   }
   .prompt-pane .prompt-content {
-    margin: auto 0;          /* 短內容時上下置中；長內容時 margin 收回為 0，內容貼上同時可滾動 */
+    margin: auto 0;          /* 短內容置中、長內容靠頂同時可滾動 */
     width: 100%;
     text-align: center;
     padding: 18px 12px;
@@ -505,7 +512,7 @@
   .prompt-pane .prompt-content :first-child { margin-top: 0; }
   .prompt-pane .prompt-content :last-child  { margin-bottom: 0; }
 
-  /* === 題目區的 inline 強調：粗體用 heavy 重量，對比超明顯 === */
+  /* === 題目區的 inline 強調 === */
   .prompt-input b, .prompt-input strong,
   .prompt-pane .prompt-content b, .prompt-pane .prompt-content strong,
   .prompt-preview b, .prompt-preview strong {
@@ -523,9 +530,8 @@
     text-underline-offset: 2px;
   }
 
-  /* Essay pane (middle) */
+  /* === Essay pane：自動長高（JS 控制），不再有內部 scrollbar === */
   .essay-pane textarea {
-    flex: 1;
     width: 100%;
     border: 0;
     background: transparent;
@@ -536,7 +542,9 @@
     color: var(--ink);
     padding: 6px 4px;
     outline: none;
-    min-height: 60vh;
+    min-height: 60vh;        /* 起始高度 */
+    overflow: hidden;        /* 不要 textarea 自己的捲軸；高度交給 JS */
+    display: block;
   }
   .essay-pane textarea::placeholder { color: var(--gray); font-style: italic; }
   .essay-pane textarea:disabled {
@@ -616,10 +624,11 @@
     border-radius: 2px;
   }
 
-  /* Comment pane */
+  /* === Comment pane（同樣自動長高） === */
   .comment-pane.empty-during-exam {
     background: transparent;
     border: 1px dashed var(--rule-light);
+    min-height: 220px;
   }
   .comment-pane.empty-during-exam .pane-label {
     border-bottom: 0;
@@ -636,9 +645,9 @@
     letter-spacing: 1px;
     text-align: center;
     padding: 20px;
+    min-height: 160px;
   }
   .comment-pane textarea {
-    flex: 1;
     width: 100%;
     border: 0;
     background: transparent;
@@ -650,6 +659,8 @@
     padding: 6px 4px;
     outline: none;
     min-height: 200px;
+    overflow: hidden;
+    display: block;
   }
   .comment-pane textarea::placeholder { color: var(--gray); font-style: italic; }
   .comment-save-row {
@@ -804,8 +815,11 @@
   }
   .submitted-card .sub-actions .secondary:hover { background: var(--paper-card); }
 
-  /* === Review banner === */
+  /* === Review banner（也黏在 header 下方） === */
   .review-banner {
+    position: sticky;
+    top: var(--sticky-offset);
+    z-index: 19;
     background: var(--paper-dark);
     border-bottom: 1px solid var(--rule);
     padding: 10px 24px 10px 70px;
@@ -839,8 +853,12 @@
       gap: 14px;
       padding: 16px;
     }
-    .pane { min-height: auto; }
-    .essay-pane textarea { min-height: 40vh; }
+    /* 小螢幕：取消 sticky（會卡）；改成一般 block 流 */
+    .prompt-pane {
+      position: static;
+      max-height: 60vh;
+    }
+    .essay-pane textarea { min-height: 50vh; }
     .timer-display { font-size: 22px; padding: 5px 14px; min-width: 100px; }
     .exam-title h1 { font-size: 20px; }
   }
@@ -865,7 +883,6 @@
       <label style="display:block; font-style:italic; color:var(--ink-soft); font-size:13px; letter-spacing:2px; text-transform:uppercase; margin-bottom:8px;">題目 Prompt</label>
     </div>
 
-    <!-- 富文字工具列：粗體 / 紅色 / 清除格式 -->
     <div class="rich-toolbar" id="teacher-toolbar">
       <button type="button" data-cmd="bold" title="粗體 Bold (Ctrl+B)"><b>B</b></button>
       <button type="button" data-cmd="italic" title="斜體 Italic (Ctrl+I)"><i>I</i></button>
@@ -876,7 +893,6 @@
       <span class="toolbar-hint">選取文字後按按鈕 / Ctrl+B、Ctrl+I</span>
     </div>
 
-    <!-- contenteditable 題目編輯區 -->
     <div
       id="teacher-prompt-input"
       class="prompt-input"
@@ -954,14 +970,14 @@
   </div>
 
   <div class="exam-main">
-    <!-- 1/4 prompt -->
+    <!-- 1/4 prompt (sticky) -->
     <div class="pane prompt-pane">
       <div class="pane-label">題目 Prompt</div>
       <div class="prompt-scroll" id="prompt-scroll">
         <div class="prompt-content" id="prompt-content"></div>
       </div>
     </div>
-    <!-- 2/4 essay -->
+    <!-- 2/4 essay (auto-grow) -->
     <div class="pane essay-pane" id="essay-pane">
       <div class="pane-label">作文 Essay</div>
       <textarea id="essay-text"
@@ -975,7 +991,6 @@
         <span class="save-status" id="save-status">—</span>
       </div>
 
-      <!-- Review 模式才會顯示：修改文章按鈕 -->
       <div class="essay-revise-row hidden" id="essay-revise-row">
         <button class="revise-btn" id="essay-revise-btn">✎ 修改文章</button>
         <span class="revise-hint">考試結束後可依照老師評語修改</span>
@@ -986,7 +1001,7 @@
         <span class="revise-saved-msg" id="essay-revise-saved-msg">✓ 已儲存</span>
       </div>
     </div>
-    <!-- 1/4 comment -->
+    <!-- 1/4 comment (auto-grow) -->
     <div class="pane comment-pane empty-during-exam" id="comment-pane">
       <div class="pane-label">老師評語 Teacher's Comment</div>
       <div class="comment-placeholder" id="comment-placeholder">
@@ -1184,6 +1199,48 @@ function renderPromptInto(el, prompt, isHtml) {
     el.textContent = prompt;
   }
 }
+
+/* ===== 自動長高 textarea ===== */
+function autoResizeTextarea(ta) {
+  if (!ta) return;
+  // 先把高度收回 auto 才能精準量到 scrollHeight
+  ta.style.height = 'auto';
+  // 加 2px 緩衝避免最後一行被裁掉
+  ta.style.height = (ta.scrollHeight + 2) + 'px';
+}
+
+function setupAutoResize(taId) {
+  const ta = document.getElementById(taId);
+  if (!ta) return;
+  if (!ta._autoResizeBound) {
+    ta._autoResizeBound = true;
+    ta.addEventListener('input', () => autoResizeTextarea(ta));
+  }
+  // 初始：確保 DOM 已 layout 之後再量
+  requestAnimationFrame(() => autoResizeTextarea(ta));
+}
+
+/* ===== 動態計算 sticky offset（header + review banner 的高度） ===== */
+function updateStickyOffset() {
+  let offset = 0;
+  const header = document.querySelector('.exam-header');
+  if (header && header.offsetParent !== null) {
+    offset += header.offsetHeight;
+  }
+  const banner = document.getElementById('review-banner');
+  if (banner && !banner.classList.contains('hidden')) {
+    offset += banner.offsetHeight;
+  }
+  document.documentElement.style.setProperty('--sticky-offset', offset + 'px');
+}
+window.addEventListener('resize', () => {
+  updateStickyOffset();
+  // 視窗大小變化也要重新計算 textarea 高度
+  ['essay-text', 'comment-text'].forEach(id => {
+    const ta = document.getElementById(id);
+    if (ta && !ta.classList.contains('hidden')) autoResizeTextarea(ta);
+  });
+});
 
 /* ===== 狀態 ===== */
 let mode = '';
@@ -1566,9 +1623,18 @@ function startExam(remainSec, initialPrompt, initialPromptIsHtml, initialEssay) 
 
   $('back-home-link').href = HOME_URL + '?user=' + encodeURIComponent(user);
 
-  $('essay-text').oninput = updateWordCount;
+  $('essay-text').oninput = function() {
+    updateWordCount();
+    autoResizeTextarea(this);
+  };
 
   window.addEventListener('beforeunload', beforeUnloadHandler);
+
+  // 黏附定位 + 文字框自動高度（DOM 已可見才能量到）
+  requestAnimationFrame(() => {
+    updateStickyOffset();
+    setupAutoResize('essay-text');
+  });
 
   $('essay-text').focus();
 }
@@ -1586,6 +1652,7 @@ function updateWordCount() {
   $('word-count').textContent = String(c);
 }
 
+/* === 計時器 === */
 function startTimer() {
   if (timerInterval) clearInterval(timerInterval);
   renderTimer();
@@ -1620,6 +1687,7 @@ function stopTimer() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 }
 
+/* === 草稿自動存 === */
 function startDraftAutoSave() {
   if (draftSaveInterval) clearInterval(draftSaveInterval);
   draftSaveInterval = setInterval(autoSaveDraft, 3000);
@@ -1642,6 +1710,7 @@ function autoSaveDraft() {
   ss.classList.add('saved');
 }
 
+/* === 時間到 === */
 function triggerTimeUp() {
   if (isLocked) return;
   stopTimer();
@@ -1650,6 +1719,7 @@ function triggerTimeUp() {
   finalizeAndSave('time-up');
 }
 
+/* === 提早交卷 === */
 $('submit-btn').addEventListener('click', () => {
   if (mode !== 'exam' || isLocked) return;
   const wc = countWords($('essay-text').value);
@@ -1777,6 +1847,17 @@ function initReview(slot, rec) {
   $('footer-info').textContent = '檢視模式 — 可修改文章 / 老師評語，題目已鎖定。';
 
   $('back-home-link').href = HOME_URL + '?user=' + encodeURIComponent(user);
+
+  // 評語也要可以 input 時自動長高
+  $('comment-text').oninput = function() {
+    autoResizeTextarea(this);
+  };
+
+  requestAnimationFrame(() => {
+    updateStickyOffset();
+    setupAutoResize('essay-text');
+    setupAutoResize('comment-text');
+  });
 }
 
 let revisingOriginalEssay = '';
@@ -1791,12 +1872,18 @@ $('essay-revise-btn').addEventListener('click', () => {
   $('essay-text').focus();
   const ta = $('essay-text');
   try { ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {}
+  // 改文章模式也要每次 input 都 resize + 字數
+  $('essay-text').oninput = function() {
+    updateWordCount();
+    autoResizeTextarea(this);
+  };
 });
 
 $('essay-revise-cancel-btn').addEventListener('click', () => {
   if (mode !== 'review') return;
   $('essay-text').value = revisingOriginalEssay;
   updateWordCount();
+  autoResizeTextarea($('essay-text'));
   $('essay-text').disabled = true;
   $('essay-pane').classList.remove('revising');
   $('essay-revise-row').classList.remove('hidden');
