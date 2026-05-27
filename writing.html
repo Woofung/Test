@@ -26,6 +26,8 @@
     --narrative: #4a7c3a;
     --opinion:   #a06234;
     --informational: #3a6f7a;
+    /* 題目專用字型：中英文都用系統無襯線體，粗體 / 紅色對比最明顯 */
+    --font-prompt: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', 'Heiti TC', 'Noto Sans TC', system-ui, sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
@@ -186,7 +188,7 @@
     max-height: 360px;
     overflow-y: auto;
     padding: 14px 16px;
-    font-family: 'Iowan Old Style', 'Palatino Linotype', serif;
+    font-family: var(--font-prompt);
     font-size: 16px;
     line-height: 1.7;
     border: 1.5px solid var(--rule);
@@ -215,7 +217,7 @@
     border: 1px dashed var(--rule);
     padding: 16px 18px;
     margin-bottom: 18px;
-    font-family: 'Iowan Old Style', serif;
+    font-family: var(--font-prompt);
     font-size: 16px;
     line-height: 1.6;
     color: var(--ink);
@@ -480,7 +482,6 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    /* 自訂滾軸 */
     scrollbar-width: thin;
     scrollbar-color: var(--rule) transparent;
   }
@@ -494,7 +495,7 @@
     width: 100%;
     text-align: center;
     padding: 18px 12px;
-    font-family: 'Iowan Old Style', 'Palatino Linotype', serif;
+    font-family: var(--font-prompt);
     font-size: 17px;
     line-height: 1.7;
     color: var(--ink);
@@ -503,11 +504,24 @@
   }
   .prompt-pane .prompt-content :first-child { margin-top: 0; }
   .prompt-pane .prompt-content :last-child  { margin-bottom: 0; }
-  /* 題目裡支援的 inline 格式 */
-  .prompt-pane .prompt-content b,
-  .prompt-pane .prompt-content strong { font-weight: 700; }
-  .prompt-pane .prompt-content i,
-  .prompt-pane .prompt-content em { font-style: italic; }
+
+  /* === 題目區的 inline 強調：粗體用 heavy 重量，對比超明顯 === */
+  .prompt-input b, .prompt-input strong,
+  .prompt-pane .prompt-content b, .prompt-pane .prompt-content strong,
+  .prompt-preview b, .prompt-preview strong {
+    font-weight: 800;
+  }
+  .prompt-input i, .prompt-input em,
+  .prompt-pane .prompt-content i, .prompt-pane .prompt-content em,
+  .prompt-preview i, .prompt-preview em {
+    font-style: italic;
+  }
+  .prompt-input u,
+  .prompt-pane .prompt-content u,
+  .prompt-preview u {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
 
   /* Essay pane (middle) */
   .essay-pane textarea {
@@ -1016,9 +1030,6 @@
 <script>
 'use strict';
 
-/* ===========================================================
-   常數與設定
-   =========================================================== */
 const HOME_URL = 'index.html';
 const TOTAL_SLOTS = 40;
 
@@ -1037,9 +1048,6 @@ const TYPE_CONFIG = {
   }
 };
 
-/* ===========================================================
-   URL 參數
-   =========================================================== */
 const params = new URLSearchParams(location.search);
 const type = (params.get('type') || '').toLowerCase();
 const user = params.get('user') || '';
@@ -1057,9 +1065,6 @@ if (!user) {
 const cfg = TYPE_CONFIG[type];
 document.documentElement.style.setProperty('--tool-color', cfg.color);
 
-/* ===========================================================
-   localStorage 介面
-   =========================================================== */
 function lsHistoryKey(u)  { return 'studyhub.history.' + u; }
 function lsDraftKey(u, t, slot) { return 'studyhub.draft.' + u + '.' + t + '.' + slot; }
 function lsLastSyncKey(u) { return 'studyhub.lastSync.' + u; }
@@ -1077,7 +1082,6 @@ function loadGistConfig() {
   catch (e) { return null; }
 }
 
-/* === 背景推送到 Gist === */
 async function pushToGist(u) {
   const c = loadGistConfig();
   if (!c || !c.gistId || !c.token) return;
@@ -1105,11 +1109,7 @@ async function pushToGist(u) {
   }
 }
 
-/* ===========================================================
-   富文字 sanitizer + helpers
-   - 只允許：b / strong / i / em / u / br / p / div / span / font
-   - 屬性只保留 style: color、或 font color="..."
-   =========================================================== */
+/* ===== 富文字 sanitizer + helpers ===== */
 const ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','FONT']);
 
 function sanitizeRichPrompt(html) {
@@ -1122,11 +1122,9 @@ function sanitizeRichPrompt(html) {
     for (const c of kids) {
       if (c.nodeType === 1) {
         if (!ALLOWED_TAGS.has(c.tagName)) {
-          // 解開：用子節點取代這個元素
           while (c.firstChild) c.parentNode.insertBefore(c.firstChild, c);
           c.parentNode.removeChild(c);
         } else {
-          // 屬性過濾：只留 color
           const attrs = [...c.attributes];
           let colorStr = null;
           for (const a of attrs) {
@@ -1140,7 +1138,6 @@ function sanitizeRichPrompt(html) {
             c.removeAttribute(a.name);
           }
           if (colorStr) {
-            // 只允許簡單的顏色字（hex、rgb、named）
             if (/^[a-z]+$|^#[0-9a-f]{3,8}$|^rgb\(/i.test(colorStr)) {
               c.setAttribute('style', 'color: ' + colorStr);
             }
@@ -1159,7 +1156,6 @@ function htmlToPlainText(html) {
   if (!html) return '';
   const tmp = document.createElement('div');
   tmp.innerHTML = String(html);
-  // 把 <br> 跟區塊元素換成換行
   tmp.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
   tmp.querySelectorAll('p, div').forEach(el => el.appendChild(document.createTextNode('\n')));
   return (tmp.textContent || '').replace(/\n{2,}/g, '\n').trim();
@@ -1169,21 +1165,17 @@ function firstSentence(text) {
   if (!text) return '';
   const trimmed = String(text).trim();
   if (!trimmed) return '';
-  // 找第一個 . ! ? 。 ！ ？
   const m = trimmed.match(/^[\s\S]*?[.!?。！？]/);
   if (m) {
     let s = m[0].trim();
-    // 縮短超長的句子
     if (s.length > 200) s = s.slice(0, 200) + '…';
     return s;
   }
-  // 沒有結尾標點：取第一行 / 前 100 字
   const firstLine = trimmed.split(/\r?\n/)[0];
   if (firstLine.length <= 100) return firstLine;
   return firstLine.slice(0, 100) + '…';
 }
 
-/* 把 prompt + promptIsHtml 寫到指定 DOM 節點 */
 function renderPromptInto(el, prompt, isHtml) {
   if (!prompt) { el.textContent = ''; return; }
   if (isHtml) {
@@ -1193,9 +1185,7 @@ function renderPromptInto(el, prompt, isHtml) {
   }
 }
 
-/* ===========================================================
-   狀態
-   =========================================================== */
+/* ===== 狀態 ===== */
 let mode = '';
 let activeSlot = null;
 let plannedMinutes = 30;
@@ -1208,13 +1198,9 @@ let beepPlayed = false;
 let reviewRecord = null;
 let preparedRecord = null;
 
-// 在 exam mode 時，這次練習的題目 + 是否 HTML
 let activePromptHtml = '';
 let activePromptIsHtml = false;
 
-/* ===========================================================
-   工具
-   =========================================================== */
 function $(id) { return document.getElementById(id); }
 function pad(n) { return String(n).padStart(2, '0'); }
 function escapeHtml(s) {
@@ -1278,9 +1264,7 @@ function playEndBeeps() {
   } catch (e) {}
 }
 
-/* ===========================================================
-   紀錄狀態分類
-   =========================================================== */
+/* ===== 紀錄狀態 ===== */
 function isPreparedRecord(r) {
   return r && r.kind === 'writing' && r.status === 'prepared';
 }
@@ -1341,9 +1325,7 @@ function findNextEmptySlot() {
   return null;
 }
 
-/* ===========================================================
-   讀取/儲存草稿
-   =========================================================== */
+/* ===== 草稿 ===== */
 function loadDraft(slot) {
   try {
     const raw = localStorage.getItem(lsDraftKey(user, type, slot));
@@ -1359,9 +1341,7 @@ function clearDraft(slot) {
   catch (e) {}
 }
 
-/* ===========================================================
-   Teacher setup mode (含富文字工具列)
-   =========================================================== */
+/* ===== Teacher setup ===== */
 function initTeacherSetup(slot) {
   mode = 'teacher-setup';
   activeSlot = slot;
@@ -1375,7 +1355,6 @@ function initTeacherSetup(slot) {
   $('teacher-setup-user').textContent = user;
   $('teacher-setup-slot').textContent = String(slot);
 
-  // 若已有 prepared 紀錄，把它帶出來
   const existing = findPreparedForSlot(slot);
   const input = $('teacher-prompt-input');
   if (existing) {
@@ -1390,7 +1369,6 @@ function initTeacherSetup(slot) {
   setTimeout(() => input.focus(), 0);
 }
 
-/* === 工具列：粗體 / 紅色 / 清除 === */
 function execEditorCmd(cmd) {
   const input = $('teacher-prompt-input');
   input.focus();
@@ -1418,11 +1396,10 @@ function execEditorCmd(cmd) {
 }
 
 document.querySelectorAll('#teacher-toolbar button').forEach(btn => {
-  btn.addEventListener('mousedown', e => e.preventDefault()); // 不要讓編輯區失焦
+  btn.addEventListener('mousedown', e => e.preventDefault());
   btn.addEventListener('click', () => execEditorCmd(btn.dataset.cmd));
 });
 
-/* 貼上時改成純文字（避免外部來源的奇怪 HTML） */
 $('teacher-prompt-input').addEventListener('paste', e => {
   e.preventDefault();
   const text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
@@ -1459,9 +1436,7 @@ $('teacher-cancel-btn').addEventListener('click', () => {
   location.href = HOME_URL + '?user=' + encodeURIComponent(user);
 });
 
-/* ===========================================================
-   Practice setup mode
-   =========================================================== */
+/* ===== Practice setup ===== */
 function initPracticeSetup(slot, prepared) {
   mode = 'practice-setup';
   activeSlot = slot;
@@ -1476,7 +1451,6 @@ function initPracticeSetup(slot, prepared) {
   $('practice-setup-user').textContent = user;
   $('practice-setup-slot').textContent = String(slot);
 
-  // 題目預覽：只顯示第一句話（純文字）
   const promptRaw = prepared.prompt || '';
   const plain = prepared.promptIsHtml ? htmlToPlainText(promptRaw) : promptRaw;
   const previewText = firstSentence(plain);
@@ -1488,7 +1462,6 @@ function initPracticeSetup(slot, prepared) {
     previewEl.innerHTML = '<span class="prompt-preview-empty">（題目尚未填寫）</span>';
   }
 
-  // 時間下拉
   const sel = $('practice-duration-select');
   sel.innerHTML = '';
   for (let m = 10; m <= 90; m += 5) {
@@ -1499,7 +1472,6 @@ function initPracticeSetup(slot, prepared) {
     sel.appendChild(opt);
   }
 
-  // 草稿
   const draft = loadDraft(slot);
   if (draft) {
     $('practice-draft-resume').classList.remove('hidden');
@@ -1532,7 +1504,6 @@ $('practice-draft-resume-btn').addEventListener('click', () => {
   const remain = typeof draft.remainSec === 'number'
     ? Math.max(1, draft.remainSec)
     : plannedMinutes * 60;
-  // 題目永遠以 prepared 為主（防止草稿覆蓋題目）
   const promptHtml = (preparedRecord && preparedRecord.prompt) || '';
   const isHtml = !!(preparedRecord && preparedRecord.promptIsHtml);
   startExam(remain, promptHtml, isHtml, draft.essay || '');
@@ -1548,9 +1519,7 @@ $('practice-edit-prompt-link').addEventListener('click', () => {
   initTeacherSetup(activeSlot);
 });
 
-/* ===========================================================
-   進入考試畫面
-   =========================================================== */
+/* ===== 進入考試 ===== */
 function startExam(remainSec, initialPrompt, initialPromptIsHtml, initialEssay) {
   mode = 'exam';
   isLocked = false;
@@ -1569,11 +1538,9 @@ function startExam(remainSec, initialPrompt, initialPromptIsHtml, initialEssay) 
   $('footer-info').innerHTML =
     '計時 <b>' + plannedMinutes + ' 分</b>　·　時間到時會自動儲存並鎖定。';
 
-  // 題目：渲染 HTML，鎖死 — 老師事先準備好的，考試中不能編輯
   activePromptHtml = initialPrompt || '';
   activePromptIsHtml = !!initialPromptIsHtml;
   renderPromptInto($('prompt-content'), activePromptHtml, activePromptIsHtml);
-  // 題目欄回到最上面（避免從草稿恢復時還停在中間）
   $('prompt-scroll').scrollTop = 0;
 
   $('essay-text').value = initialEssay || '';
@@ -1619,7 +1586,6 @@ function updateWordCount() {
   $('word-count').textContent = String(c);
 }
 
-/* === 計時器 === */
 function startTimer() {
   if (timerInterval) clearInterval(timerInterval);
   renderTimer();
@@ -1654,7 +1620,6 @@ function stopTimer() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
 }
 
-/* === 草稿自動存 === */
 function startDraftAutoSave() {
   if (draftSaveInterval) clearInterval(draftSaveInterval);
   draftSaveInterval = setInterval(autoSaveDraft, 3000);
@@ -1677,7 +1642,6 @@ function autoSaveDraft() {
   ss.classList.add('saved');
 }
 
-/* === 時間到 === */
 function triggerTimeUp() {
   if (isLocked) return;
   stopTimer();
@@ -1686,7 +1650,6 @@ function triggerTimeUp() {
   finalizeAndSave('time-up');
 }
 
-/* === 提早交卷 === */
 $('submit-btn').addEventListener('click', () => {
   if (mode !== 'exam' || isLocked) return;
   const wc = countWords($('essay-text').value);
@@ -1700,7 +1663,6 @@ $('submit-btn').addEventListener('click', () => {
   finalizeAndSave('early-submit');
 });
 
-/* === 儲存最終記錄 === */
 function finalizeAndSave(reason) {
   if (isLocked) return;
   isLocked = true;
@@ -1761,9 +1723,7 @@ $('submitted-review').addEventListener('click', () => {
   location.href = location.pathname + '?type=' + encodeURIComponent(type) + '&user=' + encodeURIComponent(user) + '&slot=' + encodeURIComponent(activeSlot);
 });
 
-/* ===========================================================
-   Review 模式
-   =========================================================== */
+/* ===== Review ===== */
 function initReview(slot, rec) {
   reviewRecord = rec;
   activeSlot = slot;
@@ -1796,7 +1756,6 @@ function initReview(slot, rec) {
     '<span style="font-style:normal">' + (rec.wordCount || 0) + ' 字</span>' +
     (mins > 0 ? '　·　花 ' + mins + ' 分' : '');
 
-  // 題目（鎖定，渲染 HTML）
   renderPromptInto($('prompt-content'), activePromptHtml, activePromptIsHtml);
   $('prompt-scroll').scrollTop = 0;
 
@@ -1820,7 +1779,6 @@ function initReview(slot, rec) {
   $('back-home-link').href = HOME_URL + '?user=' + encodeURIComponent(user);
 }
 
-/* === Review: 修改文章 === */
 let revisingOriginalEssay = '';
 
 $('essay-revise-btn').addEventListener('click', () => {
@@ -1879,7 +1837,6 @@ $('essay-revise-save-btn').addEventListener('click', () => {
   }
 });
 
-/* 儲存老師評語 */
 $('comment-save-btn').addEventListener('click', () => {
   if (mode !== 'review' || !reviewRecord) return;
   const newComment = $('comment-text').value;
@@ -1905,9 +1862,7 @@ $('comment-save-btn').addEventListener('click', () => {
   }
 });
 
-/* ===========================================================
-   啟動
-   =========================================================== */
+/* ===== 啟動 ===== */
 $('back-home-link').href = HOME_URL + '?user=' + encodeURIComponent(user);
 
 function routeBySlot(slot) {

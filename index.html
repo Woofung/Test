@@ -27,6 +27,8 @@
     --narrative: #4a7c3a;
     --opinion: #a06234;
     --informational: #3a6f7a;
+    /* 題目專用字型：中英文都用系統無襯線體 */
+    --font-prompt: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', 'Heiti TC', 'Noto Sans TC', system-ui, sans-serif;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -38,7 +40,6 @@
     font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
   }
 
-  /* 紙張紋理 */
   body::before {
     content: '';
     position: fixed;
@@ -57,7 +58,6 @@
     z-index: 1;
   }
 
-  /* ====== Profile 選擇畫面 ====== */
   #profile-screen {
     min-height: 100vh;
     display: flex;
@@ -133,10 +133,8 @@
   }
   .profile-box .gear-link:hover { color: var(--accent); text-decoration: underline; }
 
-  /* ====== 主畫面 ====== */
   #main-screen.hidden { display: none; }
 
-  /* 頂部 */
   .topbar {
     display: flex;
     align-items: flex-end;
@@ -220,7 +218,6 @@
     background: currentColor;
   }
 
-  /* ====== 工具進度區 ====== */
   .tool-section {
     margin-bottom: 40px;
     border: 1px solid var(--rule);
@@ -275,7 +272,6 @@
     margin: 0 4px;
   }
 
-  /* 開始考試按鈕 */
   .tool-section .ts-start-btn {
     background: var(--ink);
     color: var(--paper);
@@ -335,7 +331,6 @@
 
   .ts-body {}
 
-  /* === 章節格子 === */
   .chapter-grid-wrap {
     min-width: 0;
   }
@@ -395,7 +390,6 @@
     transform: scale(1.1);
     z-index: 5;
   }
-  /* === 既有測驗的四級顏色 === */
   .chapter-cell.grade-a {
     background: var(--green);
     border-color: var(--green);
@@ -429,7 +423,6 @@
     font-size: 14px;
     line-height: 1;
   }
-  /* tooltip */
   .chapter-cell .cell-tip {
     display: none;
     position: absolute;
@@ -545,7 +538,6 @@
     display: inline-block;
   }
 
-  /* ====== 歷史紀錄 ====== */
   .history-section {
     margin-bottom: 40px;
   }
@@ -706,7 +698,7 @@
     background: var(--paper);
     border: 1px dashed var(--rule);
     padding: 10px 14px;
-    font-family: 'Iowan Old Style', serif;
+    font-family: var(--font-prompt);
     font-size: 14px;
     line-height: 1.6;
     color: var(--ink);
@@ -714,11 +706,15 @@
     word-break: break-word;
     border-radius: 2px;
   }
-  /* 富文字題目支援的 inline 格式 */
+  /* 富文字題目支援的 inline 格式 — 粗體用 heavy 重量 */
   .h-writing-block .hw-prompt b,
-  .h-writing-block .hw-prompt strong { font-weight: 700; }
+  .h-writing-block .hw-prompt strong { font-weight: 800; }
   .h-writing-block .hw-prompt i,
   .h-writing-block .hw-prompt em { font-style: italic; }
+  .h-writing-block .hw-prompt u {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
   .h-writing-block .hw-essay {
     background: var(--paper-card);
     border: 1px solid var(--rule-light);
@@ -789,7 +785,6 @@
   }
   .show-more-btn:hover { background: var(--ink); color: var(--paper); }
 
-  /* ====== Modal: 設定 Gist ====== */
   .modal-overlay {
     display: none;
     position: fixed;
@@ -903,7 +898,6 @@
   .modal .test-result.ok { border-color: var(--green-light); color: var(--green); }
   .modal .test-result.fail { border-color: var(--accent); color: var(--accent); }
 
-  /* ====== 響應式 ====== */
   @media (max-width: 760px) {
     .container { padding: 22px 14px 48px; }
     .brand h1 { font-size: 28px; }
@@ -924,7 +918,6 @@
 </head>
 <body>
 
-<!-- ============ Profile 選擇畫面 ============ -->
 <div id="profile-screen">
   <div class="profile-box">
     <h1>學習中心</h1>
@@ -935,7 +928,6 @@
   </div>
 </div>
 
-<!-- ============ 主畫面 ============ -->
 <div id="main-screen" class="hidden">
   <div class="container">
 
@@ -980,7 +972,6 @@
   </div>
 </div>
 
-<!-- ============ Modal: 同步設定 ============ -->
 <div class="modal-overlay" id="settings-modal">
   <div class="modal">
     <h2>跨裝置同步設定</h2>
@@ -1093,7 +1084,6 @@ function appendUrlParam(url, key, value) {
 
 const HISTORY_PREVIEW = 10;
 
-/* ===== localStorage 介面 ===== */
 const LS_CURRENT_USER = 'studyhub.currentUser';
 const LS_GIST_CONFIG = 'studyhub.gistConfig';
 
@@ -1121,7 +1111,6 @@ function saveGistConfig(cfg) {
   else localStorage.removeItem(LS_GIST_CONFIG);
 }
 
-/* ===== 章節清單載入 ===== */
 const chapterListCache = {
   vocab: null,
   chars: null,
@@ -1164,7 +1153,6 @@ async function loadChapterList(source) {
   }
 }
 
-/* ===== Gist 同步 ===== */
 const SyncManager = {
   status: 'off',
   lastError: '',
@@ -1289,7 +1277,6 @@ const SyncManager = {
   }
 };
 
-/* ===== Profile 選擇畫面 ===== */
 function renderProfileScreen() {
   const wrap = document.getElementById('profile-list');
   wrap.innerHTML = '';
@@ -1330,7 +1317,6 @@ document.getElementById('switch-user-btn').addEventListener('click', () => {
   showProfileScreen();
 });
 
-/* ===== 主畫面 ===== */
 let showAllHistory = false;
 
 async function renderMain() {
@@ -1381,7 +1367,6 @@ function computeStreak(history) {
   return streak;
 }
 
-/* ===== 寫作紀錄分類 ===== */
 function isPreparedRec(r) {
   return r && r.kind === 'writing' && r.status === 'prepared';
 }
@@ -1389,7 +1374,7 @@ function isCompletedRec(r) {
   return r && r.kind === 'writing' && r.status !== 'prepared' && typeof r.slot === 'number';
 }
 
-/* ===== 富文字題目 sanitizer + helpers（要跟 writing.html 一致） ===== */
+/* === 富文字題目 sanitizer + helpers === */
 const RICH_ALLOWED_TAGS = new Set(['B','STRONG','I','EM','U','BR','P','DIV','SPAN','FONT']);
 function sanitizeRichPrompt(html) {
   if (!html) return '';
@@ -1455,7 +1440,6 @@ async function renderToolSections(user, history) {
   Object.entries(TOOLS).forEach(([toolKey, tool]) => {
     const recs = history.filter(h => h.tool === toolKey);
 
-    // ===== 寫作測驗：固定 40 格、4 種狀態 =====
     if (tool.kind === 'writing') {
       const totalCount = tool.slots || 40;
       const slotInfo = {};
@@ -1578,7 +1562,6 @@ async function renderToolSections(user, history) {
       return;
     }
 
-    // ===== 既有測驗：章節格子 =====
     const byChapter = {};
     recs.forEach(r => {
       const k = r.chapter || '?';
@@ -1632,7 +1615,6 @@ async function renderToolSections(user, history) {
   });
 }
 
-/* ===== 寫作測驗的 40 格 slot grid (4 種狀態) ===== */
 function renderWritingSlotGrid(container, tool, toolKey, totalCount, slotInfo, user) {
   const PER_ROW = 10;
   let html = `<div class="grid-label">作品進度（共 ${totalCount} 篇，每排 ${PER_ROW} 篇）</div><div class="chapter-grid">`;
@@ -1683,7 +1665,6 @@ function renderWritingSlotGrid(container, tool, toolKey, totalCount, slotInfo, u
     html += `</div>`;
   }
   html += `</div>`;
-  // 圖例
   html += `
     <div style="margin-top:14px; display:flex; flex-wrap:wrap; gap:14px; font-size:11px; color:var(--ink-soft); font-style:italic; align-items:center;">
       <span style="display:inline-flex; align-items:center; gap:5px;">
@@ -1836,7 +1817,6 @@ function renderHistoryTable(history) {
 }
 
 function buildHistoryDetailHtml(h) {
-  // === 寫作測驗 ===
   if (h.kind === 'writing') {
     const tool = TOOLS[h.tool] || { name: h.tool, url: 'writing.html?type=' + h.tool };
     const user = getCurrentUser();
@@ -1918,7 +1898,6 @@ document.getElementById('show-more-btn').addEventListener('click', () => {
   renderHistoryTable(loadHistory(getCurrentUser()));
 });
 
-/* ===== 設定 modal ===== */
 function openSettingsModal() {
   const cfg = loadGistConfig() || {};
   document.getElementById('gist-id-input').value = cfg.gistId || '';
@@ -1995,7 +1974,6 @@ document.getElementById('settings-disable-btn').addEventListener('click', () => 
   updateSyncPill();
 });
 
-/* ===== sync pill ===== */
 function updateSyncPill(forceState, errorMsg) {
   const pill = document.getElementById('sync-pill');
   if (!pill) return;
@@ -2025,7 +2003,6 @@ function updateSyncPill(forceState, errorMsg) {
   }
 }
 
-/* ===== 工具函式 ===== */
 function escapeHtml(s) {
   if (s == null) return '';
   return String(s)
@@ -2065,7 +2042,6 @@ function formatDateTime(iso) {
   return `${d.getMonth() + 1}/${d.getDate()} ${hh}:${mm}`;
 }
 
-/* ===== 啟動 ===== */
 (function bootstrap() {
   const urlParams = new URLSearchParams(location.search);
   const urlUser = urlParams.get('user') || '';
