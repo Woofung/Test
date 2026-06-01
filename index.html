@@ -1258,9 +1258,90 @@ function showMainScreen() {
   document.getElementById('profile-screen').classList.add('hidden');
   document.getElementById('main-screen').classList.remove('hidden');
 }
+/* === 一次性題目搬移：把「淘氣阿珊」的作文題目複製/覆蓋到所有其他 profile ===
+   - 學生的作文 + 老師評語都不會被動到，只動 prepared 題目
+   - 完成後設旗標，不會重複跑 */
+async function maybeRunPromptMigration() {
+  const MIGRATION_KEY = 'studyhub.promptsMigrated_v1';
+  if (localStorage.getItem(MIGRATION_KEY)) return;
+
+  const MASTER = '淘氣阿珊';
+  const syncOn = SyncManager.isEnabled();
+
+  // 1. 先確保 master 的本機資料是最新的（從 Gist 拉一次）
+  if (syncOn) {
+    try {
+      const remote = await SyncManager.pullForUser(MASTER);
+      const local = loadHistory(MASTER);
+      const merged = SyncManager.mergeRecords(local, remote || []);
+      saveHistory(MASTER, merged);
+    } catch (e) {
+      console.warn('Migration: pull master failed', e);
+    }
+  }
+
+  // 2. 取 master 的所有 prepared 題目
+  const masterHist = loadHistory(MASTER);
+  const masterPrompts = masterHist.filter(r =>
+    r && r.kind === 'writing' && r.status === 'prepared'
+  );
+
+  if (masterPrompts.length === 0) {
+    // master 沒題目可搬，直接標記完成
+    localStorage.setItem(MIGRATION_KEY, '1');
+    return;
+  }
+
+  // 3. 收集所有 non-master profile
+  const otherUsers = new Set();
+  USERS.forEach(u => { if (u !== MASTER) otherUsers.add(u); });
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('studyhub.history.')) {
+      const u = k.substring('studyhub.history.'.length);
+      if (u !== MASTER) otherUsers.add(u);
+    }
+  }
+
+  // 4. 對每個其他 profile：先拉取最新（避免覆蓋學生作文），
+  //    然後移除舊的 prepared，再放 master 的 prompts，最後 push
+  for (const u of otherUsers) {
+    if (syncOn) {
+      try {
+        const remote = await SyncManager.pullForUser(u);
+        const local = loadHistory(u);
+        const merged = SyncManager.mergeRecords(local, remote || []);
+        saveHistory(u, merged);
+      } catch (e) {
+        console.warn('Migration: pull', u, 'failed', e);
+      }
+    }
+
+    const h = loadHistory(u);
+    // 移除所有 prepared（依使用者要求，淘氣阿珊覆蓋掉其他人的）
+    const cleaned = h.filter(r => !(r && r.kind === 'writing' && r.status === 'prepared'));
+    // 把 master 的 prompts 複製進去（clone，避免共用 reference）
+    masterPrompts.forEach(p => cleaned.push({...p}));
+    saveHistory(u, cleaned);
+
+    if (syncOn) {
+      try { await SyncManager.pushForUser(u, loadHistory(u)); }
+      catch (e) { console.warn('Migration: push', u, 'failed', e); }
+    }
+  }
+
+  localStorage.setItem(MIGRATION_KEY, '1');
+  console.log('Prompt migration complete:', masterPrompts.length, 'prompts copied to', [...otherUsers].join(', '));
+}
+
 async function selectProfile(name) {
   setCurrentUser(name);
   showMainScreen();
+
+  // 第一次跑新版時做一次性題目搬移（淘氣阿珊 → 其他人）
+  try { await maybeRunPromptMigration(); }
+  catch (e) { console.warn('Migration error:', e); }
+
   await renderMain();
   if (SyncManager.isEnabled()) {
     updateSyncPill('syncing');

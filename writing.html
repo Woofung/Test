@@ -996,6 +996,8 @@
 
 const HOME_URL = 'index.html';
 const TOTAL_SLOTS = 40;
+// 所有 profile 列表（要跟 index.html 的 USERS 一致）— 用於把題目鏡像到全部 profile
+const USERS = ['淘氣阿珊', '其他人'];
 
 const TYPE_CONFIG = {
   narrative: { zh: '敘事寫作', en: 'Narrative Writing', color: '#4a7c3a', icon: '✒️' },
@@ -1394,28 +1396,48 @@ $('teacher-save-btn').addEventListener('click', async () => {
   }
   const btn = $('teacher-save-btn');
   const cancelBtn = $('teacher-cancel-btn');
-  const originalText = btn.textContent;
   btn.disabled = true;
   cancelBtn.disabled = true;
   btn.textContent = '儲存並同步中…';
-  const hist = loadHistory(user);
-  const filtered = hist.filter(r => !(r.tool === type && r.slot === activeSlot && isPreparedRecord(r)));
-  filtered.push({
+
+  const promptRecord = {
     tool: type, kind: 'writing', status: 'prepared',
     chapter: 'Essay ' + activeSlot, slot: activeSlot,
     prompt: html, promptIsHtml: true,
     correct: 0, wrong: 0, total: 0,
     date: new Date().toISOString()
-  });
-  saveHistoryArray(user, filtered);
-  // 重要：必須 await Gist 上傳完成才導頁，否則 fetch 會被頁面卸載中斷，
-  // 結果其他裝置永遠看不到剛存的題目
-  try {
-    await pushToGist(user);
-  } catch (e) {
-    console.warn('Push to Gist failed:', e);
-    // 即使同步失敗，本機已儲存，仍可繼續
+  };
+
+  // === 鏡像到所有 profile（題目共用、各人練習紀錄獨立） ===
+  // 收集所有 profile（USERS 列表 + 本機已存在的 history keys）
+  const allUsers = new Set(USERS);
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('studyhub.history.')) {
+      allUsers.add(k.substring('studyhub.history.'.length));
+    }
   }
+
+  // 在每個 profile 中放這份題目（移除該 slot 既有 prepared，再放新題目的 clone）
+  for (const u of allUsers) {
+    let h;
+    try { h = JSON.parse(localStorage.getItem('studyhub.history.' + u) || '[]'); }
+    catch (e) { h = []; }
+    h = h.filter(r => !(
+      r && r.tool === type && r.slot === activeSlot
+      && r.kind === 'writing' && r.status === 'prepared'
+    ));
+    h.push({...promptRecord});
+    localStorage.setItem('studyhub.history.' + u, JSON.stringify(h));
+  }
+
+  // === 把每個 profile 都推到 Gist ===
+  // 必須 await，否則 fetch 會被頁面卸載中斷，其他裝置就看不到題目
+  for (const u of allUsers) {
+    try { await pushToGist(u); }
+    catch (e) { console.warn('Push failed for', u, e); }
+  }
+
   location.href = HOME_URL + '?user=' + encodeURIComponent(user);
 });
 
