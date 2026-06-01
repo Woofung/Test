@@ -1384,7 +1384,7 @@ $('teacher-prompt-input').addEventListener('paste', e => {
   document.execCommand('insertText', false, text);
 });
 
-$('teacher-save-btn').addEventListener('click', () => {
+$('teacher-save-btn').addEventListener('click', async () => {
   const input = $('teacher-prompt-input');
   const html = sanitizeRichPrompt(input.innerHTML);
   const plain = htmlToPlainText(html);
@@ -1392,6 +1392,12 @@ $('teacher-save-btn').addEventListener('click', () => {
     alert('請先填寫題目');
     return;
   }
+  const btn = $('teacher-save-btn');
+  const cancelBtn = $('teacher-cancel-btn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  cancelBtn.disabled = true;
+  btn.textContent = '儲存並同步中…';
   const hist = loadHistory(user);
   const filtered = hist.filter(r => !(r.tool === type && r.slot === activeSlot && isPreparedRecord(r)));
   filtered.push({
@@ -1402,7 +1408,14 @@ $('teacher-save-btn').addEventListener('click', () => {
     date: new Date().toISOString()
   });
   saveHistoryArray(user, filtered);
-  pushToGist(user);
+  // 重要：必須 await Gist 上傳完成才導頁，否則 fetch 會被頁面卸載中斷，
+  // 結果其他裝置永遠看不到剛存的題目
+  try {
+    await pushToGist(user);
+  } catch (e) {
+    console.warn('Push to Gist failed:', e);
+    // 即使同步失敗，本機已儲存，仍可繼續
+  }
   location.href = HOME_URL + '?user=' + encodeURIComponent(user);
 });
 
@@ -1782,7 +1795,7 @@ $('essay-revise-cancel-btn').addEventListener('click', () => {
   $('essay-revise-saving-row').classList.add('hidden');
 });
 
-$('essay-revise-save-btn').addEventListener('click', () => {
+$('essay-revise-save-btn').addEventListener('click', async () => {
   if (mode !== 'review' || !reviewRecord) return;
   const newEssay = $('essay-text').value;
   const newWc = countWords(newEssay);
@@ -1803,7 +1816,13 @@ $('essay-revise-save-btn').addEventListener('click', () => {
     reviewRecord.essay = newEssay;
     reviewRecord.wordCount = newWc;
     revisingOriginalEssay = newEssay;
-    pushToGist(user);
+    const btn = $('essay-revise-save-btn');
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '同步中…';
+    try { await pushToGist(user); } catch (e) { console.warn('Push failed:', e); }
+    btn.disabled = false;
+    btn.textContent = orig;
     $('essay-text').disabled = true;
     $('essay-pane').classList.remove('revising');
     $('essay-revise-row').classList.remove('hidden');
@@ -1816,7 +1835,7 @@ $('essay-revise-save-btn').addEventListener('click', () => {
   }
 });
 
-$('comment-save-btn').addEventListener('click', () => {
+$('comment-save-btn').addEventListener('click', async () => {
   if (mode !== 'review' || !reviewRecord) return;
   const newComment = $('comment-text').value;
   const hist = loadHistory(user);
@@ -1832,7 +1851,13 @@ $('comment-save-btn').addEventListener('click', () => {
   if (updated) {
     saveHistoryArray(user, hist);
     reviewRecord.teacherComment = newComment;
-    pushToGist(user);
+    const btn = $('comment-save-btn');
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '同步中…';
+    try { await pushToGist(user); } catch (e) { console.warn('Push failed:', e); }
+    btn.disabled = false;
+    btn.textContent = orig;
     const msg = $('comment-saved-msg');
     msg.classList.add('show');
     setTimeout(() => msg.classList.remove('show'), 1800);
