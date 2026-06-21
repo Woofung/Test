@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>英文打字練習 Typing Test</title>
+<script>
+// =====================================================
+// 學習中心整合（含 Gist 同步推送）— 與其他測驗一致
+// =====================================================
+(function() {
+  const params = new URLSearchParams(location.search);
+  const user = params.get('user') || '';
+  const HOME_URL = 'index.html';
+  const LS_GIST_CONFIG = 'studyhub.gistConfig';
+  function lsHistoryKey(u) { return 'studyhub.history.' + u; }
+  function lsLastSyncKey(u) { return 'studyhub.lastSync.' + u; }
+  function loadGistConfig() {
+    try { return JSON.parse(localStorage.getItem(LS_GIST_CONFIG) || 'null'); }
+    catch (e) { return null; }
+  }
+  function fileNameFor(u) { return 'profile-' + encodeURIComponent(u) + '.json'; }
+
+  async function pushToGist(u) {
+    const cfg = loadGistConfig();
+    if (!cfg || !cfg.gistId || !cfg.token) return;
+    try {
+      const records = JSON.parse(localStorage.getItem(lsHistoryKey(u)) || '[]');
+      const content = JSON.stringify({ version: 1, user: u, updatedAt: new Date().toISOString(), records }, null, 2);
+      const r = await fetch('https://api.github.com/gists/' + cfg.gistId, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': 'Bearer ' + cfg.token,
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ files: { [fileNameFor(u)]: { content } } })
+      });
+      if (r.ok) localStorage.setItem(lsLastSyncKey(u), new Date().toISOString());
+      else console.warn('Gist push failed:', r.status);
+    } catch (e) { console.warn('Gist push error:', e); }
+  }
+
+  window.QuizHistory = {
+    user: user,
+    enabled: !!user,
+    save(record) {
+      if (!user) return false;
+      try {
+        const key = lsHistoryKey(user);
+        const arr = JSON.parse(localStorage.getItem(key) || '[]');
+        arr.push(record);
+        localStorage.setItem(key, JSON.stringify(arr));
+        pushToGist(user);
+        return true;
+      } catch (e) { console.warn('儲存紀錄失敗:', e); return false; }
+    },
+    backHome() { location.href = HOME_URL + (user ? '?user=' + encodeURIComponent(user) : ''); }
+  };
+  if (!user) return;
+  function injectBackButton() {
+    if (document.getElementById('quiz-back-home-btn')) return;
+    const btn = document.createElement('a');
+    btn.id = 'quiz-back-home-btn';
+    btn.href = HOME_URL + '?user=' + encodeURIComponent(user);
+    btn.textContent = '← 學習中心';
+    btn.title = '回到學習中心(' + user + ')';
+    btn.style.cssText = "position:fixed;top:14px;left:14px;z-index:50;font-family:'Iowan Old Style',Palatino,serif;font-size:13px;letter-spacing:1px;color:#5a5048;background:rgba(244,237,224,0.85);padding:6px 12px;border:1px solid #c9bfa8;border-radius:2px;text-decoration:none;backdrop-filter:blur(4px);";
+    btn.addEventListener('mouseenter', () => { btn.style.background='#2a2620'; btn.style.color='#f4ede0'; btn.style.borderColor='#2a2620'; });
+    btn.addEventListener('mouseleave', () => { btn.style.background='rgba(244,237,224,0.85)'; btn.style.color='#5a5048'; btn.style.borderColor='#c9bfa8'; });
+    document.body.appendChild(btn);
+  }
+  if (document.body) injectBackButton();
+  else document.addEventListener('DOMContentLoaded', injectBackButton);
+})();
+</script>
+<style>
+  :root {
+    --paper: #f4ede0;
+    --paper-dark: #e8dcc4;
+    --paper-card: #faf5e8;
+    --ink: #2a2620;
+    --ink-soft: #5a5048;
+    --rule: #c9bfa8;
+    --rule-light: #ddd0b0;
+    --accent: #b8442e;
+    --green: #4a7c3a;
+    --green-bg: #cfe3bd;
+    --red: #c9392c;
+    --red-bg: #f1c9c0;
+    --gray: #9a9080;
+    --typing: #2f8f8f;
+    --mono: 'SF Mono', 'JetBrains Mono', 'Consolas', 'Roboto Mono', 'Menlo', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    min-height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Palatino, serif;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: repeating-linear-gradient(transparent 0, transparent 38px, rgba(180,160,120,0.08) 38px, rgba(180,160,120,0.08) 39px);
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 56px 28px 64px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ===== 設定畫面 ===== */
+  .setup h1 {
+    font-family: 'Didot', 'Bodoni 72', 'Hoefler Text', serif;
+    font-size: 50px; font-weight: 400; letter-spacing: -1px; text-align: center;
+  }
+  .setup .subtitle {
+    text-align: center; color: var(--ink-soft); font-style: italic;
+    letter-spacing: 1px; margin: 6px 0 44px;
+  }
+  .field { margin-bottom: 34px; }
+  .field > label {
+    display: block; font-size: 13px; text-transform: uppercase;
+    letter-spacing: 2px; color: var(--ink-soft); margin-bottom: 14px;
+  }
+
+  .opt-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .opt-btn {
+    flex: 1; min-width: 100px;
+    background: var(--paper-card); border: 1.5px solid var(--ink); color: var(--ink);
+    padding: 16px 10px; font-family: 'Didot', serif; font-size: 20px;
+    letter-spacing: 1px; cursor: pointer; border-radius: 3px; transition: all .15s;
+    text-align: center;
+  }
+  .opt-btn .opt-sub { display:block; font-family:'Iowan Old Style',serif; font-style:italic; font-size:12px; color:var(--ink-soft); letter-spacing:0; margin-top:4px; }
+  .opt-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 0 var(--rule); }
+  .opt-btn.selected { background: var(--typing); border-color: var(--typing); color: #fff; }
+  .opt-btn.selected .opt-sub { color: rgba(255,255,255,0.85); }
+
+  .mode-row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .mode-btn {
+    flex: 1; min-width: 200px;
+    background: var(--paper-card); border: 1.5px solid var(--ink); color: var(--ink);
+    padding: 14px 16px; cursor: pointer; border-radius: 3px; transition: all .15s; text-align: left;
+  }
+  .mode-btn .mode-name { font-family: 'Didot', serif; font-size: 18px; letter-spacing: 1px; }
+  .mode-btn .mode-desc { font-style: italic; font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+  .mode-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 0 var(--rule); }
+  .mode-btn.selected { background: var(--typing); border-color: var(--typing); color: #fff; }
+  .mode-btn.selected .mode-desc { color: rgba(255,255,255,0.85); }
+
+  textarea#article {
+    width: 100%; min-height: 150px; resize: vertical;
+    background: rgba(255,255,255,0.45); border: 1.5px solid var(--rule); border-radius: 4px;
+    padding: 16px; font-family: var(--mono); font-size: 15px; line-height: 1.7; color: var(--ink);
+  }
+  textarea#article:focus { outline: none; border-color: var(--typing); background: rgba(255,255,255,0.7); }
+  .field .hint { font-size: 12px; color: var(--gray); font-style: italic; margin-top: 8px; }
+
+  .start-btn {
+    display: block; width: 100%; margin-top: 8px;
+    background: var(--typing); color: #fff; border: 1.5px solid var(--typing);
+    padding: 16px; font-family: 'Didot', serif; font-size: 22px; letter-spacing: 3px;
+    cursor: pointer; border-radius: 3px; transition: all .15s;
+  }
+  .start-btn:hover { filter: brightness(1.08); }
+  .start-btn:disabled { background: var(--gray); border-color: var(--gray); cursor: not-allowed; }
+
+  /* ===== 測驗畫面 ===== */
+  .topbar {
+    display: flex; align-items: stretch; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 28px;
+  }
+  .stat-box {
+    flex: 1; min-width: 120px;
+    background: var(--paper-card); border: 1px solid var(--rule); border-radius: 3px;
+    padding: 12px 16px; text-align: center;
+  }
+  .stat-box .stat-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--ink-soft); font-style: italic;
+  }
+  .stat-box .stat-value {
+    font-family: 'Didot', serif; font-size: 30px; line-height: 1.1; margin-top: 4px;
+  }
+  .stat-box.timer { border-color: var(--typing); }
+  .stat-box.timer .stat-value { color: var(--typing); }
+  .stat-box.timer.low .stat-value { color: var(--red); }
+  .stat-box .stat-value small { font-size: 14px; color: var(--ink-soft); font-family: 'Iowan Old Style', serif; }
+
+  .mode-toggle-bar { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .mode-toggle-bar .mt-left { font-size: 13px; color: var(--ink-soft); font-style: italic; letter-spacing: 1px; }
+  .mode-toggle-bar .controls { display:flex; gap:8px; }
+  .pill {
+    background: transparent; border: 1px solid var(--rule); color: var(--ink-soft);
+    padding: 6px 14px; font-family: inherit; font-size: 13px; letter-spacing: 1px;
+    cursor: pointer; border-radius: 2px;
+  }
+  .pill.on { background: var(--typing); border-color: var(--typing); color: #fff; }
+  .pill:hover { border-color: var(--typing); }
+
+  .text-display {
+    background: var(--paper-card); border: 1px solid var(--rule); border-radius: 4px;
+    padding: 0 30px; height: 240px; overflow: hidden; position: relative;
+    font-family: var(--mono); font-size: 24px; line-height: 2.0;
+    letter-spacing: 1px; color: var(--gray);
+    word-break: normal; overflow-wrap: normal;
+  }
+  .text-inner { transition: transform 0.12s ease-out; }
+  .ch { position: relative; }
+  .ch.correct { color: var(--ink); background: var(--green-bg); border-radius: 2px; }
+  .ch.incorrect { color: var(--red); background: var(--red-bg); border-radius: 2px; }
+  .ch.current {
+    border-bottom: 3px solid var(--typing);
+    animation: caret 1s steps(1) infinite;
+  }
+  .ch.current.flash-bad { background: var(--red-bg); border-radius: 2px; }
+  @keyframes caret { 50% { border-bottom-color: transparent; } }
+
+  .typing-hint {
+    text-align: center; color: var(--gray); font-style: italic; font-size: 14px;
+    margin-top: 18px; font-family: 'Iowan Old Style', serif;
+  }
+
+  /* ===== 結果畫面 ===== */
+  .result-card {
+    background: var(--paper-card); border: 2px solid var(--ink); border-radius: 4px;
+    padding: 40px; text-align: center;
+  }
+  .result-card h2 {
+    font-family: 'Didot', serif; font-size: 34px; font-weight: 400; letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .result-card .res-sub { color: var(--ink-soft); font-style: italic; margin-bottom: 30px; }
+  .result-wpm {
+    font-family: 'Didot', serif; font-size: 88px; line-height: 1; color: var(--typing);
+  }
+  .result-wpm-label { font-style: italic; color: var(--ink-soft); letter-spacing: 2px; margin-top: 4px; }
+  .result-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;
+    margin: 34px 0 8px;
+  }
+  .res-stat { border: 1px solid var(--rule); border-radius: 3px; padding: 16px 10px; background: rgba(255,255,255,0.35); }
+  .res-stat .rs-label { font-size: 16px; font-weight: 700; color: var(--ink); letter-spacing: 1px; font-family: 'Microsoft JhengHei', '微軟正黑體', 'PingFang TC', 'Heiti TC', 'Noto Sans TC', sans-serif; }
+  .res-stat .rs-value { font-family: 'Didot', serif; font-size: 30px; margin-top: 6px; }
+  .res-stat .rs-value.good { color: var(--green); }
+  .res-stat .rs-value.bad { color: var(--accent); }
+  .result-actions { display: flex; gap: 14px; justify-content: center; margin-top: 32px; flex-wrap: wrap; }
+  .result-actions button, .result-actions a {
+    background: var(--ink); color: var(--paper); border: 1.5px solid var(--ink);
+    padding: 12px 28px; font-family: 'Didot', serif; font-size: 16px; letter-spacing: 2px;
+    cursor: pointer; border-radius: 2px; text-decoration: none; transition: all .15s;
+  }
+  .result-actions button.primary { background: var(--typing); border-color: var(--typing); }
+  .result-actions button.ghost, .result-actions a.ghost { background: transparent; color: var(--ink); }
+  .result-actions button:hover, .result-actions a:hover { filter: brightness(1.1); }
+  .saved-note { margin-top: 18px; font-size: 12px; color: var(--gray); font-style: italic; }
+
+  @media (max-width: 680px) {
+    .wrap { padding: 56px 16px 48px; }
+    .setup h1 { font-size: 38px; }
+    .text-display { font-size: 20px; padding: 0 20px; }
+    .result-wpm { font-size: 64px; }
+    .result-grid { grid-template-columns: 1fr; }
+    .stat-box .stat-value { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== 設定畫面 ===================== -->
+<div class="screen active" id="screen-setup">
+  <div class="wrap setup">
+    <h1>打字練習</h1>
+    <div class="subtitle">— Typing Test · 測你的 WPM 與準確度 —</div>
+
+    <div class="field">
+      <label>考試時間</label>
+      <div class="opt-row" id="duration-row">
+        <button class="opt-btn" data-sec="60">1<span class="opt-sub">分鐘</span></button>
+        <button class="opt-btn" data-sec="180">3<span class="opt-sub">分鐘</span></button>
+        <button class="opt-btn selected" data-sec="300">5<span class="opt-sub">分鐘</span></button>
+        <button class="opt-btn" data-sec="600">10<span class="opt-sub">分鐘</span></button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>打錯字的模式</label>
+      <div class="mode-row" id="mode-row">
+        <button class="mode-btn" data-mode="free">
+          <div class="mode-name">① 自由模式</div>
+          <div class="mode-desc">打錯會標紅，但可以直接往下打（可按 Backspace 修正）</div>
+        </button>
+        <button class="mode-btn" data-mode="strict">
+          <div class="mode-name">② 嚴格模式</div>
+          <div class="mode-desc">打錯就卡住，一定要打對才能繼續</div>
+        </button>
+        <button class="mode-btn selected" data-mode="noconsec">
+          <div class="mode-name">③ 防連錯模式</div>
+          <div class="mode-desc">可容許一個錯字，但若連續再打錯會「嗶嗶」警告並卡住，須打對或回去修正</div>
+        </button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="hint" id="bank-status">題庫載入中…</div>
+    </div>
+
+    <button class="start-btn" id="start-btn">開 始 考 試</button>
+  </div>
+</div>
+
+<!-- ===================== 測驗畫面 ===================== -->
+<div class="screen" id="screen-test">
+  <div class="wrap">
+    <div class="topbar">
+      <div class="stat-box timer" id="box-timer">
+        <div class="stat-label">剩餘時間</div>
+        <div class="stat-value" id="v-timer">0:00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">WPM</div>
+        <div class="stat-value" id="v-wpm">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">字元準確度</div>
+        <div class="stat-value" id="v-cacc">100<small>%</small></div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">單字準確度</div>
+        <div class="stat-value" id="v-wacc">100<small>%</small></div>
+      </div>
+    </div>
+
+    <div class="mode-toggle-bar">
+      <div class="mt-left" id="mode-indicator">模式：自由</div>
+      <div class="controls">
+        <button class="pill" id="toggle-mode">切換模式</button>
+        <button class="pill on" id="toggle-sound">🔊 聲音</button>
+      </div>
+    </div>
+
+    <div class="text-display" id="text-display">
+      <div class="text-inner" id="text-inner"></div>
+    </div>
+    <div class="typing-hint" id="typing-hint">開始打字，計時就會啟動 ⌨️</div>
+  </div>
+</div>
+
+<!-- ===================== 結果畫面 ===================== -->
+<div class="screen" id="screen-result">
+  <div class="wrap">
+    <div class="result-card">
+      <h2>考試結束</h2>
+      <div class="res-sub" id="res-sub">—</div>
+      <div class="result-wpm" id="r-wpm">0</div>
+      <div class="result-wpm-label">WPM（每分鐘字數）</div>
+      <div class="result-grid">
+        <div class="res-stat">
+          <div class="rs-label">字元準確度</div>
+          <div class="rs-value" id="r-cacc">0%</div>
+        </div>
+        <div class="res-stat">
+          <div class="rs-label">單字準確度</div>
+          <div class="rs-value" id="r-wacc">0%</div>
+        </div>
+        <div class="res-stat">
+          <div class="rs-label">完成單字數</div>
+          <div class="rs-value" id="r-words">0</div>
+        </div>
+      </div>
+      <div class="result-actions">
+        <button class="primary" id="retry-btn">再試一次</button>
+        <button class="ghost" id="setup-btn">重新設定</button>
+        <a class="ghost" id="home-link" href="#" style="display:none">← 學習中心</a>
+      </div>
+      <div class="saved-note" id="saved-note"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ===== 題庫（從 passages.json 載入；萬一載入失敗用這段備用） ===== */
+const FALLBACK_TEXT =
+"Melons are sweet fruits. They have a fragrant, juicy inside that is usually eaten fresh. " +
+"Melons are a good source of vitamins A and C. Common melons include cantaloupe, honeydew, and casaba. " +
+"Melons are related to gourds, cucumbers, pumpkins, and squashes. Watermelons also are related, but they are not considered true melons. " +
+"Today people grow melons on almost every continent. A ripe melon feels heavy for its size and smells a little sweet near the stem.";
+
+let PASSAGES = [];   // [{id, text, words}]
+
+/* 依使用者記錄「用過的題目」，全部用完才重新洗牌 */
+const TYPING_USER = (new URLSearchParams(location.search)).get('user') || 'guest';
+function usedKey() { return 'typing.used.' + TYPING_USER; }
+function loadUsed() { try { return new Set(JSON.parse(localStorage.getItem(usedKey()) || '[]')); } catch (e) { return new Set(); } }
+function saveUsed(set) { localStorage.setItem(usedKey(), JSON.stringify([...set])); }
+
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+async function loadBank() {
+  const el = $('bank-status');
+  $('start-btn').disabled = true;
+  try {
+    const r = await fetch('passages.json?t=' + Date.now(), { cache: 'no-store' });
+    if (r.ok) PASSAGES = await r.json();
+  } catch (e) { PASSAGES = []; }
+  if (PASSAGES.length) {
+    const used = loadUsed().size;
+    el.textContent = '題庫共 ' + PASSAGES.length + ' 篇 · 每次自動抽未使用過的題目（已用 ' + used + ' 篇，全部用完會自動重新洗牌）';
+  } else {
+    el.textContent = '找不到 passages.json，將使用內建備用短文。';
+  }
+  $('start-btn').disabled = false;
+}
+
+/* ===== 狀態 ===== */
+let settings = { durationSec: 300, mode: 'noconsec' };
+let soundOn = true;
+
+let text = '';
+let chars = [];          // 每個字元的 <span>
+let pos = 0;             // 目前游標位置
+let typed = [];          // typed[i] = 使用者在第 i 格輸入的字元
+
+let charTotal = 0, charCorrect = 0;
+let wordTotal = 0, wordCorrect = 0;
+let wordErrorFlag = false;
+let evaluatedBoundaries = new Set();
+
+let running = false, finished = false;
+let startTime = 0, durationSec = 180;
+let tickTimer = null, endTimer = null;
+let lineTop = -1;
+let lineH = 48;          // 量測到的行高（px）；顯示固定 5 行
+
+/* ===== DOM ===== */
+const $ = id => document.getElementById(id);
+
+/* ===== 設定畫面互動 ===== */
+loadBank();
+
+$('duration-row').addEventListener('click', e => {
+  const btn = e.target.closest('.opt-btn'); if (!btn) return;
+  document.querySelectorAll('#duration-row .opt-btn').forEach(b => b.classList.toggle('selected', b === btn));
+  settings.durationSec = parseInt(btn.dataset.sec, 10);
+});
+$('mode-row').addEventListener('click', e => {
+  const btn = e.target.closest('.mode-btn'); if (!btn) return;
+  document.querySelectorAll('#mode-row .mode-btn').forEach(b => b.classList.toggle('selected', b === btn));
+  settings.mode = btn.dataset.mode;
+});
+$('start-btn').addEventListener('click', startTest);
+
+/* ===== 文字處理：抽未使用過的題目拼到足夠長度，全部用完才洗牌 ===== */
+function buildText(durSec) {
+  // 以 200 WPM 上限估算需要字數，確保時間內打不完
+  const targetWords = Math.min(2600, Math.ceil((durSec / 60) * 200) + 80);
+
+  if (!PASSAGES.length) {  // 備用：循環備用短文
+    let src = FALLBACK_TEXT.replace(/\s+/g, ' ').trim();
+    let out = src, w = src.split(' ').length;
+    while (w < targetWords) { out += ' ' + src; w += src.split(' ').length; }
+    return out;
+  }
+
+  let used = loadUsed();
+  let avail = PASSAGES.filter(p => !used.has(p.id));
+  if (!avail.length) { used = new Set(); avail = PASSAGES.slice(); }  // 全部用完 → 洗牌重來
+  shuffle(avail);
+
+  const parts = [];
+  let words = 0, k = 0;
+  while (words < targetWords) {
+    if (k >= avail.length) {                 // 中途用罄（題庫很大，通常不會發生）→ 重新洗牌
+      used = new Set(); avail = shuffle(PASSAGES.slice()); k = 0;
+    }
+    const p = avail[k++];
+    parts.push(p.text);
+    used.add(p.id);
+    words += p.words || p.text.split(' ').length;
+  }
+  saveUsed(used);
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
+}
+
+/* ===== 渲染文字 ===== */
+function renderText() {
+  const inner = $('text-inner');
+  inner.innerHTML = '';
+  inner.style.transform = 'translateY(0)';
+  chars = [];
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < text.length; i++) {
+    const span = document.createElement('span');
+    span.className = 'ch' + (text[i] === ' ' ? ' space' : '');
+    span.textContent = text[i];
+    frag.appendChild(span);
+    chars.push(span);
+  }
+  inner.appendChild(frag);
+  if (chars[0]) chars[0].classList.add('current');
+  // 量測行高，固定顯示 5 行；上方留 2 行空白，讓「正在輸入的那一行」永遠在正中間
+  const disp = $('text-display');
+  const lh = parseFloat(getComputedStyle(inner).lineHeight);
+  lineH = (lh && !isNaN(lh)) ? lh : 48;
+  inner.style.paddingTop = (lineH * 2) + 'px';
+  disp.style.height = (lineH * 5) + 'px';
+  inner.style.transform = 'translateY(0)';
+  lineTop = chars[0] ? chars[0].offsetTop : -1;
+}
+
+/* ===== 開始 ===== */
+function startTest() {
+  durationSec = settings.durationSec;
+  text = buildText(durationSec);
+  pos = 0; typed = [];
+  charTotal = 0; charCorrect = 0;
+  wordTotal = 0; wordCorrect = 0;
+  wordErrorFlag = false; evaluatedBoundaries = new Set();
+  running = false; finished = false; startTime = 0;
+
+  renderText();
+  updateModeIndicator();
+  $('v-timer').textContent = fmtTime(durationSec);
+  $('box-timer').classList.remove('low');
+  $('v-wpm').textContent = '0';
+  $('v-cacc').innerHTML = '100<small>%</small>';
+  $('v-wacc').innerHTML = '100<small>%</small>';
+  $('typing-hint').style.display = '';
+
+  showScreen('test');
+  window.focus();
+}
+
+/* ===== 模式 / 聲音 切換 ===== */
+const MODE_ORDER = ['free', 'strict', 'noconsec'];
+const MODE_NAMES = { free: '自由模式', strict: '嚴格模式', noconsec: '防連錯模式' };
+const MODE_HINTS = { free: '自由（可往下打）', strict: '嚴格（打對才能繼續）', noconsec: '防連錯（不可連續出錯）' };
+function modeName(m) { return MODE_NAMES[m] || m; }
+function updateModeIndicator() {
+  $('mode-indicator').textContent = '模式：' + (MODE_HINTS[settings.mode] || settings.mode);
+}
+$('toggle-mode').addEventListener('click', () => {
+  const i = MODE_ORDER.indexOf(settings.mode);
+  settings.mode = MODE_ORDER[(i + 1) % MODE_ORDER.length];
+  updateModeIndicator();
+});
+$('toggle-sound').addEventListener('click', () => {
+  soundOn = !soundOn;
+  const b = $('toggle-sound');
+  b.classList.toggle('on', soundOn);
+  b.textContent = soundOn ? '🔊 聲音' : '🔇 靜音';
+});
+
+/* ===== 鍵盤輸入 ===== */
+window.addEventListener('keydown', e => {
+  if (document.getElementById('screen-test').classList.contains('active') === false) return;
+  if (finished) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+  if (e.key === 'Backspace') {
+    e.preventDefault();
+    handleBackspace();
+    return;
+  }
+  let ch = e.key;
+  if (ch === 'Enter') ch = ' ';        // 換行當作空格處理
+  if (ch.length !== 1) return;          // 忽略 Shift/箭頭等
+  e.preventDefault();
+  handleChar(ch);
+});
+
+function ensureStarted() {
+  if (running) return;
+  running = true;
+  startTime = Date.now();
+  $('typing-hint').style.display = 'none';
+  tickTimer = setInterval(tick, 150);
+  endTimer = setTimeout(finish, durationSec * 1000);
+}
+
+// 依模式判斷「打錯時是否要被擋下、不能往下打」
+function isBlocked(isCorrect) {
+  if (isCorrect) return false;
+  if (settings.mode === 'strict') return true;          // 一定要打對
+  if (settings.mode === 'noconsec') {                    // 不可連續出錯
+    const prevWrong = pos > 0 && typed[pos - 1] !== undefined && typed[pos - 1] !== text[pos - 1];
+    return prevWrong;                                    // 只有「上一個也錯」才擋
+  }
+  return false;                                          // 自由模式
+}
+
+function handleChar(ch) {
+  if (pos >= text.length) return;
+  ensureStarted();
+  const expected = text[pos];
+  const isCorrect = (ch === expected);
+
+  charTotal++;
+  if (isCorrect) charCorrect++;
+
+  if (isBlocked(isCorrect)) {
+    wordErrorFlag = true;
+    if (settings.mode === 'noconsec') playBeep();        // 連續出錯 → 嗶嗶警告
+    else playSound(false);                               // 嚴格模式 → 沉鈍提醒
+    flashBad();
+    updateLiveStats();
+    return;
+  }
+
+  if (expected === ' ') {
+    // 打到空格 → 結束前一個單字
+    if (!evaluatedBoundaries.has(pos)) {
+      evaluatedBoundaries.add(pos);
+      wordTotal++;
+      if (!wordErrorFlag) wordCorrect++;
+    }
+    wordErrorFlag = false;
+    acceptChar(ch, isCorrect);
+  } else {
+    if (!isCorrect) wordErrorFlag = true;
+    acceptChar(ch, isCorrect);
+  }
+}
+
+function acceptChar(ch, isCorrect) {
+  typed[pos] = ch;
+  const span = chars[pos];
+  span.classList.remove('current', 'flash-bad');
+  span.classList.add(isCorrect ? 'correct' : 'incorrect');
+  pos++;
+  if (pos < chars.length) chars[pos].classList.add('current');
+  playSound(isCorrect);
+  scrollToCurrent();
+  updateLiveStats();
+  if (pos >= text.length) finish();
+}
+
+function handleBackspace() {
+  if (!running || pos <= 0) return;
+  // 從目前游標移除 current
+  if (pos < chars.length) chars[pos].classList.remove('current', 'flash-bad');
+  pos--;
+  typed[pos] = undefined;
+  const span = chars[pos];
+  span.classList.remove('correct', 'incorrect', 'flash-bad');
+  span.classList.add('current');
+  scrollToCurrent();
+}
+
+function flashBad() {
+  const span = chars[pos];
+  if (!span) return;
+  span.classList.add('flash-bad');
+  setTimeout(() => span && span.classList.remove('flash-bad'), 180);
+}
+
+/* ===== 捲動：永遠把正在輸入的那一行放在正中間（第 3 行） ===== */
+function scrollToCurrent() {
+  const span = chars[pos] || chars[pos - 1];
+  if (!span) return;
+  const curTop = span.offsetTop;          // 已含上方 2 行的 paddingTop
+  if (curTop === lineTop) return;         // 還在同一行就不捲動
+  lineTop = curTop;
+  let offset = curTop - lineH * 2;        // 把目前這一行移到第 3 行的位置
+  if (offset < 0) offset = 0;
+  $('text-inner').style.transform = 'translateY(' + (-offset) + 'px)';
+}
+
+/* ===== 即時統計 ===== */
+function countWordsCompleted() {
+  // 已打過的區段裡的空格數 = 已完成的單字數（文章為單一空格分隔）
+  let n = 0;
+  for (let i = 0; i < pos && i < text.length; i++) if (text[i] === ' ') n++;
+  return n;
+}
+
+function elapsedMin() {
+  if (!startTime) return 0;
+  return (Date.now() - startTime) / 60000;
+}
+
+function liveWPM() {
+  const m = elapsedMin();
+  if (m <= 0) return 0;
+  return Math.round(countWordsCompleted() / m);
+}
+
+function pct(num, den) { return den > 0 ? Math.round(num / den * 100) : 100; }
+
+function updateLiveStats() {
+  $('v-wpm').textContent = liveWPM();
+  $('v-cacc').innerHTML = pct(charCorrect, charTotal) + '<small>%</small>';
+  $('v-wacc').innerHTML = pct(wordCorrect, wordTotal) + '<small>%</small>';
+}
+
+/* ===== 計時 ===== */
+function tick() {
+  if (!running) return;
+  const remain = Math.max(0, durationSec - (Date.now() - startTime) / 1000);
+  $('v-timer').textContent = fmtTime(Math.ceil(remain));
+  $('box-timer').classList.toggle('low', remain <= 10);
+  updateLiveStats();
+  if (remain <= 0) finish();
+}
+
+/* ===== 結束 ===== */
+function finish() {
+  if (finished) return;
+  finished = true; running = false;
+  if (tickTimer) clearInterval(tickTimer);
+  if (endTimer) clearTimeout(endTimer);
+
+  const words = countWordsCompleted();
+  const minutes = durationSec / 60;
+  const wpm = minutes > 0 ? Math.round(words / minutes) : 0;
+  const cAcc = pct(charCorrect, charTotal);
+  const wAcc = pct(wordCorrect, wordTotal);
+
+  $('r-wpm').textContent = wpm;
+  const cEl = $('r-cacc'); cEl.textContent = cAcc + '%';
+  cEl.className = 'rs-value ' + (cAcc >= 90 ? 'good' : (cAcc < 70 ? 'bad' : ''));
+  const wEl = $('r-wacc'); wEl.textContent = wAcc + '%';
+  wEl.className = 'rs-value ' + (wAcc >= 90 ? 'good' : (wAcc < 70 ? 'bad' : ''));
+  $('r-words').textContent = words;
+  $('res-sub').textContent = fmtMinLabel(durationSec) + ' · ' + modeName(settings.mode);
+
+  // 儲存到學習中心
+  let note = '';
+  if (window.QuizHistory && window.QuizHistory.enabled) {
+    const ok = window.QuizHistory.save({
+      tool: 'typing',
+      chapter: fmtMinLabel(durationSec),
+      correct: charCorrect,
+      wrong: charTotal - charCorrect,
+      total: charTotal,
+      wrongList: [],
+      wpm: wpm,
+      charAccuracy: cAcc,
+      wordAccuracy: wAcc,
+      wordsCompleted: words,
+      durationSeconds: durationSec,
+      mode: settings.mode,
+      date: new Date().toISOString()
+    });
+    note = ok ? '✓ 已記錄到學習中心' : '';
+    const hl = $('home-link');
+    hl.style.display = '';
+    hl.href = 'index.html?user=' + encodeURIComponent(window.QuizHistory.user);
+  } else {
+    note = '（未選擇使用者，本次成績不會被記錄。可從學習中心進入以保存紀錄。）';
+  }
+  $('saved-note').textContent = note;
+
+  showScreen('result');
+}
+
+$('retry-btn').addEventListener('click', startTest);
+$('setup-btn').addEventListener('click', () => showScreen('setup'));
+
+/* ===== 畫面切換 ===== */
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('screen-' + name).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+/* ===== 聲音（Web Audio 合成） ===== */
+let audioCtx = null;
+function getCtx() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e) { audioCtx = null; }
+  }
+  return audioCtx;
+}
+function playSound(correct) {
+  if (!soundOn) return;
+  const ctx = getCtx(); if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+  const t = ctx.currentTime;
+  if (correct) {
+    // 更清脆的機械鍵盤敲擊聲：極短的白噪衝擊（過高通） + 高頻 tick
+    const dur = 0.022;
+    const len = Math.max(1, Math.ceil(ctx.sampleRate * dur));
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const env = Math.pow(1 - i / len, 2.2);   // 快速衰減 → 像「喀」一聲
+      data[i] = (Math.random() * 2 - 1) * env;
+    }
+    const src = ctx.createBufferSource(); src.buffer = buf;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 2400;
+    const ng = ctx.createGain(); ng.gain.value = 0.55;
+    src.connect(hp); hp.connect(ng); ng.connect(ctx.destination);
+    src.start(t); src.stop(t + dur + 0.02);
+
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'square';
+    o.frequency.setValueAtTime(2700, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.12, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+    o.start(t); o.stop(t + 0.04);
+  } else {
+    // 沉鈍的提醒聲（維持不變）
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(180, t);
+    o.frequency.exponentialRampToValueAtTime(110, t + 0.12);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.28, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+    o.start(t); o.stop(t + 0.18);
+  }
+}
+// 防連錯模式：連續出錯時的「嗶嗶」警告聲
+function playBeep() {
+  if (!soundOn) return;
+  const ctx = getCtx(); if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+  const t0 = ctx.currentTime;
+  [0, 0.13].forEach(off => {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = 'square';
+    o.frequency.setValueAtTime(520, t0 + off);
+    g.gain.setValueAtTime(0.0001, t0 + off);
+    g.gain.exponentialRampToValueAtTime(0.25, t0 + off + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + off + 0.09);
+    o.start(t0 + off); o.stop(t0 + off + 0.11);
+  });
+}
+
+/* ===== 小工具 ===== */
+function fmtTime(sec) {
+  sec = Math.max(0, Math.round(sec));
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m + ':' + String(s).padStart(2, '0');
+}
+function fmtMinLabel(sec) {
+  return (sec / 60) + ' 分鐘';
+}
+</script>
+</body>
+</html>

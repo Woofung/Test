@@ -27,10 +27,16 @@
     --narrative: #4a7c3a;
     --opinion: #a06234;
     --informational: #3a6f7a;
+    --typing: #2f8f8f;
     --font-prompt: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Microsoft JhengHei', 'Heiti TC', 'Noto Sans TC', system-ui, sans-serif;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* 統一字型：微軟正黑體（提升可讀性，特別是中文標籤） */
+  body, body *, input, button, textarea, select {
+    font-family: 'Microsoft JhengHei', '微軟正黑體', 'PingFang TC', 'Heiti TC', 'Noto Sans TC', sans-serif !important;
+  }
 
   html, body {
     min-height: 100%;
@@ -251,6 +257,7 @@
   .tool-section.narrative .ts-title h2 { color: var(--narrative); }
   .tool-section.opinion   .ts-title h2 { color: var(--opinion); }
   .tool-section.informational .ts-title h2 { color: var(--informational); }
+  .tool-section.typing .ts-title h2 { color: var(--typing); }
   .tool-section .ts-title .ts-en {
     font-style: italic;
     color: var(--ink-soft);
@@ -297,6 +304,41 @@
   .tool-section.narrative .ts-start-btn:not(.secondary) { background: var(--narrative); border-color: var(--narrative); }
   .tool-section.opinion   .ts-start-btn:not(.secondary) { background: var(--opinion); border-color: var(--opinion); }
   .tool-section.informational .ts-start-btn:not(.secondary) { background: var(--informational); border-color: var(--informational); }
+  .tool-section.typing .ts-start-btn:not(.secondary) { background: var(--typing); border-color: var(--typing); }
+
+  /* ===== 打字練習：成績圖表 ===== */
+  .typing-stats-row {
+    display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 18px;
+  }
+  .typing-stat {
+    flex: 1; min-width: 120px; background: rgba(255,255,255,0.4);
+    border: 1px solid var(--rule); border-radius: 3px; padding: 12px 16px; text-align: center;
+  }
+  .typing-stat .ts-num { font-family: 'Didot', serif; font-size: 28px; color: var(--ink); }
+  .typing-stat .ts-num small { font-size: 14px; color: var(--ink-soft); }
+  .typing-stat .ts-cap { font-size: 11px; color: var(--ink-soft); font-style: italic; letter-spacing: 1px; margin-top: 4px; }
+  .typing-stat .ts-num.typing-c { color: var(--typing); }
+
+  .chart-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+  .chart-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chart-tabs button {
+    background: transparent; border: 1px solid var(--rule); color: var(--ink-soft);
+    padding: 5px 14px; font-family: inherit; font-size: 12px; letter-spacing: 1px;
+    cursor: pointer; border-radius: 2px;
+  }
+  .chart-tabs button.active { background: var(--typing); border-color: var(--typing); color: #fff; }
+  .chart-title { font-family: 'Didot', serif; font-size: 17px; letter-spacing: 1px; color: var(--ink); }
+  .chart-box {
+    background: rgba(255,255,255,0.35); border: 1px solid var(--rule); border-radius: 4px;
+    padding: 16px 10px 8px;
+  }
+  .chart-box svg { width: 100%; height: auto; display: block; }
+  .chart-box .chart-line { fill: none; stroke: var(--typing); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .chart-box .chart-dot { fill: #fff; stroke: var(--typing); stroke-width: 2; }
+  .chart-box .chart-grid { stroke: var(--rule-light); stroke-width: 1; }
+  .chart-box .chart-axis-label { fill: var(--ink-soft); font-size: 11px; }
+  .chart-box .chart-axis-title { fill: var(--ink-soft); font-size: 12px; font-weight: 700; }
+  .chart-empty { text-align: center; color: var(--gray); font-style: italic; padding: 30px; font-size: 14px; }
   .tool-section .ts-start-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 3px 0 var(--ink);
@@ -677,6 +719,7 @@
   .tag.narrative      { background: rgba(74, 124, 58, 0.12); color: var(--narrative); }
   .tag.opinion        { background: rgba(160, 98, 52, 0.12); color: var(--opinion); }
   .tag.informational  { background: rgba(58, 111, 122, 0.12); color: var(--informational); }
+  .tag.typing         { background: rgba(47, 143, 143, 0.12); color: var(--typing); }
 
   .h-writing-block {
     margin-top: 6px;
@@ -1050,6 +1093,11 @@ const TOOLS = {
     name: 'Informational Writing', nameEn: '資訊寫作', icon: '📝',
     desc: '提供說明與資訊', url: 'writing.html?type=informational',
     cls: 'informational', kind: 'writing', slots: 40,
+  },
+  typing: {
+    name: '英文打字', nameEn: 'Typing Test', icon: '⌨️',
+    desc: '打英文，測 WPM 與準確度', url: 'typing.html',
+    cls: 'typing', kind: 'typing',
   },
 };
 
@@ -1476,6 +1524,77 @@ function promptToPlain(prompt, isHtml) {
   return isHtml ? htmlToPlainText(prompt) : prompt;
 }
 
+/* ===== 打字練習：折線圖 ===== */
+function chartDate(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  return (d.getMonth() + 1) + '/' + d.getDate();
+}
+function chartDateTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + hh + ':' + mm;
+}
+function typingValue(r, metric) {
+  if (metric === 'wpm') return r.wpm || 0;
+  if (metric === 'cacc') return (typeof r.charAccuracy === 'number') ? r.charAccuracy : (r.total > 0 ? Math.round(r.correct / r.total * 100) : 0);
+  return (typeof r.wordAccuracy === 'number') ? r.wordAccuracy : 0;
+}
+function buildTypingChart(points, metric) {
+  const W = 600, H = 272, padL = 66, padR = 18, padT = 18, padB = 56;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const isAcc = metric !== 'wpm';
+  const vals = points.map(p => typingValue(p, metric));
+  let vmin = Math.min.apply(null, vals), vmax = Math.max.apply(null, vals);
+  if (vmin === vmax) { vmin = Math.max(0, vmin - 5); vmax = vmax + 5; }
+  else { const pad = (vmax - vmin) * 0.18; vmin = Math.max(0, vmin - pad); vmax = vmax + pad; }
+  if (isAcc) vmax = Math.min(100, vmax);
+  if (vmax <= vmin) vmax = vmin + 1;
+  const n = points.length;
+  const xAt = i => (n === 1) ? (padL + plotW / 2) : (padL + plotW * i / (n - 1));
+  const yAt = v => padT + plotH * (1 - (v - vmin) / (vmax - vmin));
+
+  // 水平格線 + Y 軸刻度（準確度加上 %）
+  let grid = '';
+  for (let k = 0; k <= 4; k++) {
+    const v = vmin + (vmax - vmin) * k / 4;
+    const y = yAt(v);
+    grid += `<line class="chart-grid" x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}"/>`;
+    grid += `<text class="chart-axis-label" x="${padL - 8}" y="${(y + 3.5).toFixed(1)}" text-anchor="end">${Math.round(v)}${isAcc ? '%' : ''}</text>`;
+  }
+  // Y 軸單位（標在縱座標軸左側、直書）
+  const unit = (metric === 'wpm') ? 'WPM' : (metric === 'cacc' ? '字元準確度 (%)' : '單字準確度 (%)');
+  const ymid = (padT + plotH / 2);
+  const yTitle = `<text class="chart-axis-title" x="16" y="${ymid.toFixed(1)}" text-anchor="middle" transform="rotate(-90 16 ${ymid.toFixed(1)})">${unit}</text>`;
+  // 折線（最新在最右）
+  const linePath = points.map((p, i) => (i === 0 ? 'M' : 'L') + xAt(i).toFixed(1) + ',' + yAt(typingValue(p, metric)).toFixed(1)).join(' ');
+  // 資料點
+  let dots = '';
+  points.forEach((p, i) => {
+    dots += `<circle class="chart-dot" cx="${xAt(i).toFixed(1)}" cy="${yAt(typingValue(p, metric)).toFixed(1)}" r="3.5"><title>${chartDateTime(p.date)} · ${typingValue(p, metric)}${isAcc ? '%' : ' WPM'}</title></circle>`;
+  });
+  // X 軸：每一個資料點都標日期（點多時旋轉避免重疊）
+  let xlabels = '';
+  const rot = n > 8;
+  points.forEach((p, i) => {
+    const x = xAt(i).toFixed(1);
+    if (rot) {
+      xlabels += `<text class="chart-axis-label" x="${x}" y="${H - 32}" text-anchor="end" transform="rotate(-45 ${x} ${H - 32})">${chartDate(p.date)}</text>`;
+    } else {
+      const anchor = (n > 1 && i === 0) ? 'start' : ((n > 1 && i === n - 1) ? 'end' : 'middle');
+      xlabels += `<text class="chart-axis-label" x="${x}" y="${H - 16}" text-anchor="${anchor}">${chartDate(p.date)}</text>`;
+    }
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img">
+    ${grid}${yTitle}
+    ${n > 1 ? `<path class="chart-line" d="${linePath}"/>` : ''}
+    ${dots}
+    ${xlabels}
+  </svg>`;
+}
+
 async function renderToolSections(user, history) {
   const wrap = document.getElementById('tool-sections');
   wrap.innerHTML = '';
@@ -1600,6 +1719,67 @@ async function renderToolSections(user, history) {
       `;
       wrap.appendChild(section);
       renderWritingSlotGrid(section.querySelector('.chapter-grid-wrap'), tool, toolKey, totalCount, slotInfo, user);
+      return;
+    }
+
+    if (tool.kind === 'typing') {
+      const tRecs = recs
+        .filter(r => typeof r.wpm === 'number' && typeof r.durationSeconds === 'number')
+        .sort((a, b) => (a.date < b.date ? -1 : (a.date > b.date ? 1 : 0)));
+      const startHref = appendUrlParam(tool.url, 'user', user);
+      const section = document.createElement('div');
+      section.className = 'tool-section typing';
+
+      let bodyHtml;
+      if (tRecs.length === 0) {
+        bodyHtml = '<div class="chart-empty">尚未有打字紀錄。完成一次測驗後，這裡會列出每次的 WPM 與準確度，並畫成折線圖。</div>';
+      } else {
+        const best = Math.max.apply(null, tRecs.map(r => r.wpm));
+        const last = tRecs[tRecs.length - 1];
+        const lastC = typingValue(last, 'cacc');
+        const lastW = typingValue(last, 'wacc');
+        bodyHtml = `
+          <div class="typing-stats-row">
+            <div class="typing-stat"><div class="ts-num typing-c">${best}</div><div class="ts-cap">最佳 WPM</div></div>
+            <div class="typing-stat"><div class="ts-num">${last.wpm}</div><div class="ts-cap">最近 WPM</div></div>
+            <div class="typing-stat"><div class="ts-num">${lastC}<small>%</small></div><div class="ts-cap">最近 字元準確度</div></div>
+            <div class="typing-stat"><div class="ts-num">${lastW}<small>%</small></div><div class="ts-cap">最近 單字準確度</div></div>
+          </div>
+          <div class="chart-controls">
+            <div class="chart-tabs metric-tabs">
+              <button data-metric="wpm">WPM</button>
+              <button data-metric="cacc">字元準確度</button>
+              <button data-metric="wacc">單字準確度</button>
+            </div>
+          </div>
+          <div class="chart-box"></div>`;
+      }
+
+      section.innerHTML = `
+        <div class="ts-header">
+          <div class="ts-title">
+            <h2>${tool.icon} ${tool.name}</h2>
+            <span class="ts-en">${tool.nameEn}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+            <div class="ts-progress">${tRecs.length > 0 ? `共 <span class="done">${tRecs.length}</span> 次測驗` : '尚無測驗紀錄'}</div>
+            <a class="ts-start-btn" href="${startHref}">→ 開始打字</a>
+          </div>
+        </div>
+        <div class="ts-body">${bodyHtml}</div>`;
+      wrap.appendChild(section);
+
+      if (tRecs.length > 0) {
+        let selMetric = 'wpm';
+        const box = section.querySelector('.chart-box');
+        const metricBtns = section.querySelectorAll('.metric-tabs button');
+        function drawChart() {
+          metricBtns.forEach(b => b.classList.toggle('active', b.dataset.metric === selMetric));
+          box.innerHTML = buildTypingChart(tRecs, selMetric);   // 所有測驗（不分時長）一起畫
+        }
+        metricBtns.forEach(b => b.addEventListener('click', () => { selMetric = b.dataset.metric; drawChart(); }));
+        drawChart();
+      }
       return;
     }
 
