@@ -325,17 +325,17 @@
   .mark-row {
     display: flex;
     justify-content: flex-end;
-    margin-bottom: 16px;
+    margin-bottom: 54px;
   }
   .mark-check {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 28px;
     cursor: pointer;
     user-select: none;
-    padding: 9px 16px;
-    border: 2px solid var(--green);
-    border-radius: 6px;
+    padding: 26px 46px;
+    border: 3px solid var(--green);
+    border-radius: 16px;
     background: rgba(74, 124, 58, 0.08);
     transition: background 0.12s;
   }
@@ -343,19 +343,19 @@
   .mark-check.on { background: var(--green); }
   .mark-check input { position: absolute; opacity: 0; width: 0; height: 0; }
   .mark-box {
-    width: 22px; height: 22px;
-    border: 2px solid var(--green);
-    border-radius: 4px;
+    width: 66px; height: 66px;
+    border: 3px solid var(--green);
+    border-radius: 12px;
     background: #fff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
   }
-  .mark-tick { color: #fff; font-size: 15px; line-height: 1; opacity: 0; }
+  .mark-tick { color: #fff; font-size: 46px; line-height: 1; opacity: 0; }
   .mark-check input:checked + .mark-box { background: var(--green); border-color: #fff; }
   .mark-check input:checked + .mark-box .mark-tick { opacity: 1; }
-  .mark-label { font-size: 16px; letter-spacing: 1px; color: var(--green); font-weight: 500; }
+  .mark-label { font-size: 46px; letter-spacing: 1px; color: var(--green); font-weight: 500; }
   .mark-check.on .mark-label { color: #fff; }
   .mark-check.on .mark-box { border-color: #fff; }
   
@@ -592,9 +592,11 @@
     .word-display .word { font-size: 56px; }
     .answer-area { bottom: 24px; }
     .options { grid-template-columns: 1fr; gap: 8px; }
-    .mark-row { margin-bottom: 10px; }
-    .mark-check { padding: 7px 12px; }
-    .mark-label { font-size: 14px; }
+    .mark-row { margin-bottom: 32px; }
+    .mark-check { padding: 16px 22px; gap: 16px; }
+    .mark-box { width: 44px; height: 44px; }
+    .mark-tick { font-size: 30px; }
+    .mark-label { font-size: 28px; }
     .option { padding: 14px; font-size: 17px; min-height: 52px; }
     .counter { font-size: 18px; top: 16px; right: 16px; }
     .round-tag { top: 16px; left: 16px; font-size: 11px; }
