@@ -330,12 +330,12 @@
   .mark-check {
     display: inline-flex;
     align-items: center;
-    gap: 28px;
+    gap: 14px;
     cursor: pointer;
     user-select: none;
-    padding: 26px 46px;
-    border: 3px solid var(--green);
-    border-radius: 16px;
+    padding: 10px 18px;
+    border: 2px solid var(--green);
+    border-radius: 10px;
     background: rgba(74, 124, 58, 0.08);
     transition: background 0.12s;
   }
@@ -355,7 +355,7 @@
   .mark-tick { color: #fff; font-size: 46px; line-height: 1; opacity: 0; }
   .mark-check input:checked + .mark-box { background: var(--green); border-color: #fff; }
   .mark-check input:checked + .mark-box .mark-tick { opacity: 1; }
-  .mark-label { font-size: 46px; letter-spacing: 1px; color: var(--green); font-weight: 500; }
+  .mark-label { font-size: 24px; letter-spacing: 1px; color: var(--green); font-weight: 500; }
   .mark-check.on .mark-label { color: #fff; }
   .mark-check.on .mark-box { border-color: #fff; }
   
@@ -593,10 +593,10 @@
     .answer-area { bottom: 24px; }
     .options { grid-template-columns: 1fr; gap: 8px; }
     .mark-row { margin-bottom: 32px; }
-    .mark-check { padding: 16px 22px; gap: 16px; }
-    .mark-box { width: 44px; height: 44px; }
-    .mark-tick { font-size: 30px; }
-    .mark-label { font-size: 28px; }
+    .mark-check { padding: 8px 14px; gap: 10px; }
+    .mark-box { width: 48px; height: 48px; }
+    .mark-tick { font-size: 32px; }
+    .mark-label { font-size: 18px; }
     .option { padding: 14px; font-size: 17px; min-height: 52px; }
     .counter { font-size: 18px; top: 16px; right: 16px; }
     .round-tag { top: 16px; left: 16px; font-size: 11px; }
@@ -655,9 +655,9 @@
     <div class="answer-area">
       <div class="mark-row">
         <label class="mark-check" id="mark-check">
+          <span class="mark-label">不熟的單字？</span>
           <input type="checkbox" id="mark-unfamiliar">
           <span class="mark-box"><span class="mark-tick">✓</span></span>
-          <span class="mark-label">不熟的單字？</span>
         </label>
       </div>
       <div class="options" id="options"></div>
