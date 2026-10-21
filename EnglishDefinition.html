@@ -307,16 +307,57 @@
     opacity: 1;
   }
   
-  .options {
+  .answer-area {
     position: absolute;
     bottom: 60px;
     left: 50%;
     transform: translateX(-50%);
+    width: min(900px, 90%);
+  }
+  .options {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
-    width: min(900px, 90%);
+    width: 100%;
   }
+
+  /* 「不熟的單字」綠色勾選框：放在題目與答案之間、偏右 */
+  .mark-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 16px;
+  }
+  .mark-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+    padding: 9px 16px;
+    border: 2px solid var(--green);
+    border-radius: 6px;
+    background: rgba(74, 124, 58, 0.08);
+    transition: background 0.12s;
+  }
+  .mark-check:hover { background: rgba(74, 124, 58, 0.16); }
+  .mark-check.on { background: var(--green); }
+  .mark-check input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .mark-box {
+    width: 22px; height: 22px;
+    border: 2px solid var(--green);
+    border-radius: 4px;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .mark-tick { color: #fff; font-size: 15px; line-height: 1; opacity: 0; }
+  .mark-check input:checked + .mark-box { background: var(--green); border-color: #fff; }
+  .mark-check input:checked + .mark-box .mark-tick { opacity: 1; }
+  .mark-label { font-size: 16px; letter-spacing: 1px; color: var(--green); font-weight: 500; }
+  .mark-check.on .mark-label { color: #fff; }
+  .mark-check.on .mark-box { border-color: #fff; }
   
   .option {
     padding: 14px 20px;
@@ -549,7 +590,11 @@
   
   @media (max-width: 600px) {
     .word-display .word { font-size: 56px; }
-    .options { grid-template-columns: 1fr; gap: 8px; bottom: 32px; }
+    .answer-area { bottom: 24px; }
+    .options { grid-template-columns: 1fr; gap: 8px; }
+    .mark-row { margin-bottom: 10px; }
+    .mark-check { padding: 7px 12px; }
+    .mark-label { font-size: 14px; }
     .option { padding: 14px; font-size: 17px; min-height: 52px; }
     .counter { font-size: 18px; top: 16px; right: 16px; }
     .round-tag { top: 16px; left: 16px; font-size: 11px; }
@@ -605,7 +650,16 @@
       <div class="pos" id="pos"></div>
       <div class="all-defs" id="all-defs"></div>
     </div>
-    <div class="options" id="options"></div>
+    <div class="answer-area">
+      <div class="mark-row">
+        <label class="mark-check" id="mark-check">
+          <input type="checkbox" id="mark-unfamiliar">
+          <span class="mark-box"><span class="mark-tick">✓</span></span>
+          <span class="mark-label">不熟的單字？</span>
+        </label>
+      </div>
+      <div class="options" id="options"></div>
+    </div>
     <div class="hint">
       <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> 選擇 &nbsp;·&nbsp; <kbd>Space</kbd> 確認
     </div>
@@ -624,7 +678,10 @@
     
     <div class="section-title">錯題回顧</div>
     <div id="wrong-container"></div>
-    
+
+    <div class="section-title" id="marked-title" style="display:none; color: var(--green);">🔖 標記為不熟的單字</div>
+    <div id="marked-container"></div>
+
     <div class="result-actions">
       <button id="retry-btn">同章節再來一次</button>
       <button id="back-btn">回到主選單</button>
@@ -744,6 +801,7 @@ let qIndex = 0;
 let selectedIdx = 0;
 let locked = false;
 let stats = { correct: 0, wrong: 0, total: 0, wrongList: [] };
+let markedWords = new Map();   // 使用者標記為「不熟」的單字： word -> correctDef（不影響分數）
 let reviewQueue = [];       // 答錯的題目（會在第一輪結束後重考一次）
 let isReviewRound = false;
 
@@ -1027,6 +1085,7 @@ function startQuiz(words) {
   questions = shuffle(words).map(w => buildQuestion(w, chapterPool));
   qIndex = 0;
   stats = { correct: 0, wrong: 0, total: questions.length, wrongList: [] };
+  markedWords = new Map();
   reviewQueue = [];
   isReviewRound = false;
   // 記錄考試開始時間
@@ -1158,7 +1217,26 @@ function renderQuestion() {
   document.body.classList.remove('locked');
   updateSelection();
   updateCounter();
+  syncMarkCheckbox();
 }
+
+// 「不熟的單字」勾選框：同步目前題目的狀態
+function syncMarkCheckbox() {
+  const q = questions[qIndex];
+  const cb = document.getElementById('mark-unfamiliar');
+  const wrap = document.getElementById('mark-check');
+  if (!cb || !wrap || !q) return;
+  const on = markedWords.has(q.word);
+  cb.checked = on;
+  wrap.classList.toggle('on', on);
+}
+document.getElementById('mark-unfamiliar').addEventListener('change', function () {
+  const q = questions[qIndex];
+  if (!q) { this.checked = false; return; }
+  if (this.checked) markedWords.set(q.word, q.correctDef);
+  else markedWords.delete(q.word);
+  document.getElementById('mark-check').classList.toggle('on', this.checked);
+});
 
 function updateSelection() {
   document.querySelectorAll('.option').forEach((el, i) => {
@@ -1221,6 +1299,7 @@ function submitAnswer() {
 // =============== 鍵盤事件 ===============
 document.addEventListener('keydown', e => {
   if (!document.getElementById('quiz-screen').classList.contains('active')) return;
+  if (e.target && e.target.id === 'mark-unfamiliar') return;  // 焦點在勾選框時，讓它自己處理
   if (locked) return;
   
   const cols = 2;
@@ -1281,6 +1360,29 @@ function showResult() {
     wc.appendChild(ul);
   }
 
+  // === 標記為「不熟」的單字（不影響分數；排除已經答錯的，避免重複）===
+  const wrongWordSet = new Set(stats.wrongList.map(w => w.word));
+  const markedList = [...markedWords.entries()]
+    .filter(([word]) => !wrongWordSet.has(word))
+    .map(([word, correctDef]) => ({ word, correctDef, marked: true }));
+  const markedTitle = document.getElementById('marked-title');
+  const mc = document.getElementById('marked-container');
+  if (markedList.length === 0) {
+    markedTitle.style.display = 'none';
+    mc.innerHTML = '';
+  } else {
+    markedTitle.style.display = '';
+    const mul = document.createElement('ul');
+    mul.className = 'wrong-list';
+    markedList.forEach(w => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="w-word">${w.word}</span><span class="w-correct">${w.correctDef}</span>`;
+      mul.appendChild(li);
+    });
+    mc.innerHTML = '';
+    mc.appendChild(mul);
+  }
+
   // === 寫入學習中心歷史紀錄 ===
   if (window.QuizHistory && window.QuizHistory.enabled && stats.total > 0) {
     try {
@@ -1298,6 +1400,11 @@ function showResult() {
           word: w.word || '',
           correctDef: w.correctDef || '',
           pickedDef: w.pickedDef || ''
+        })),
+        markedList: markedList.map(w => ({
+          word: w.word || '',
+          correctDef: w.correctDef || '',
+          marked: true
         })),
         date: new Date().toISOString()
       });
@@ -1377,6 +1484,17 @@ function switchScreen(id) {
   font-size: 13px;
   text-align: center;
   padding: 4px 0;
+}
+.recent-wrong-box .rwb-tag {
+  display: inline-block;
+  font-size: 11px;
+  color: #4a7c3a;
+  border: 1px solid #4a7c3a;
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-right: 6px;
+  vertical-align: 1px;
+  white-space: nowrap;
 }
 </style>
 <script>
@@ -1460,17 +1578,20 @@ function switchScreen(id) {
       }
       const recent = recs.reduce((a, b) => a.date > b.date ? a : b);
       const wrongList = Array.isArray(recent.wrongList) ? recent.wrongList : [];
+      const markedList = Array.isArray(recent.markedList) ? recent.markedList : [];
+      const combined = wrongList.concat(markedList);   // 答錯的 + 標記為不熟的
       const dateStr = formatDate(recent.date);
       const pct = recent.total > 0 ? Math.round(recent.correct / recent.total * 100) : 0;
       let html = '<div class="rwb-title">📋 ' + escapeHtml(chapterStr) + ' · 上次錯題</div>';
       html += '<div class="rwb-meta">' + escapeHtml(dateStr) + ' · ' + recent.correct + '/' + recent.total + '（' + pct + '%）</div>';
-      if (wrongList.length === 0) {
+      if (combined.length === 0) {
         html += '<div class="rwb-empty">上次全部答對 ✨</div>';
       } else {
         html += '<ul class="rwb-list">';
-        wrongList.forEach(w => {
+        combined.forEach(w => {
           const { question, answer } = normalizeWrong(toolKey, w);
-          html += '<li><span class="rwb-q">' + escapeHtml(question) + '</span>';
+          const tag = (w && w.marked) ? '<span class="rwb-tag">🔖 不熟</span> ' : '';
+          html += '<li><span class="rwb-q">' + tag + escapeHtml(question) + '</span>';
           if (answer) html += '<span class="rwb-a">' + escapeHtml(answer) + '</span>';
           html += '</li>';
         });
