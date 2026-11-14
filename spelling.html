@@ -813,6 +813,34 @@
     .browse-counter { font-size: 14px; margin-bottom: 18px; }
     .browse-divider { margin: 24px auto; }
   }
+
+  /* ===== 長列表捲動修正（iPhone / iPad）=====
+     設定畫面的「上次錯題」與結果畫面的「錯題回顧 / 不熟單字」很長時，
+     原本會被固定高度（90vh、置中、body 禁止捲動）裁掉，滑不到底。
+     改成整個畫面本身可以捲動：內容短時仍置中，內容長時從頂端開始、可一路滑到底。 */
+  #setup-screen, #result-screen {
+    justify-content: flex-start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  #setup-screen > .setup,
+  #result-screen > .result {
+    margin-top: auto;
+    margin-bottom: auto;
+    flex-shrink: 0;
+  }
+  #result-screen > .result {
+    max-height: none;
+    overflow: visible;
+  }
+  /* 底部留白：最後一列不會被 Safari 工具列或 Home 指示條擋住 */
+  #setup-screen::after,
+  #result-screen::after {
+    content: '';
+    display: block;
+    flex: 0 0 calc(40px + env(safe-area-inset-bottom, 0px));
+  }
 </style>
 </head>
 <body>
