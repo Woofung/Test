@@ -225,6 +225,23 @@
     box-shadow: 0 4px 0 var(--ink);
   }
   .start-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* 「只考上次錯題 / 不熟」按鈕：次要樣式，放在「開始考試」下面 */
+  .review-only-btn {
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    font-size: 15px;
+    letter-spacing: 2px;
+    padding: 12px;
+    margin-top: 10px;
+    transition: all 0.2s;
+  }
+  .review-only-btn:hover:not(:disabled) {
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .review-only-btn:disabled { opacity: 0.35; cursor: not-allowed; }
   
   .info-text {
     margin-top: 16px;
@@ -662,6 +679,7 @@
     </div>
     
     <button class="start-btn" id="start-btn" disabled>開始考試</button>
+    <button class="review-only-btn" id="review-only-btn" disabled>只考上次錯題 / 不熟</button>
     <p class="info-text" id="info-text">操作：方向鍵選擇 · 空白鍵確認</p>
     <div id="error-msg-visible" style="color: var(--accent); font-size: 14px; margin-top: 12px; text-align: center;"></div>
     <div id="recent-wrong-box" class="recent-wrong-box" style="display:none"></div>
@@ -834,6 +852,8 @@ let stats = { correct: 0, wrong: 0, total: 0, wrongList: [] };
 let markedWords = new Map();   // 使用者標記為「不熟」的單字： word -> correctDef（不影響分數）
 let reviewQueue = [];       // 答錯的題目（會在第一輪結束後重考一次）
 let isReviewRound = false;
+let mistakesOnlyMode = false;  // 「只考上次錯題 / 不熟」模式：成績不寫入學習紀錄
+let lastQuizWords = [];        // 這次考的字（「再來一次」用）
 
 // =============== Excel 處理 ===============
 const fileInput = document.getElementById('file-input');
@@ -1007,11 +1027,13 @@ function parseExcelBuffer(arrayBuffer) {
   if (window.RecentWrong) {
     window.RecentWrong.update('vocab', chapterSelect.value);
   }
+  refreshReviewOnlyBtn();
   // 切章節時也要更新
   chapterSelect.addEventListener('change', () => {
     if (window.RecentWrong) {
       window.RecentWrong.update('vocab', chapterSelect.value);
     }
+    refreshReviewOnlyBtn();
   });
 }
 
@@ -1109,9 +1131,68 @@ startBtn.addEventListener('click', () => {
   startQuiz(chaptersMap[currentChapter]);
 });
 
-function startQuiz(words) {
+// =============== 只考上次錯題 / 不熟 ===============
+// 只「讀取」學習紀錄（該章節最近一次 vocab 測驗的 wrongList + markedList），
+// 不會修改任何舊紀錄；這個模式考完的成績也不寫入紀錄，避免影響章節成績。
+const reviewOnlyBtn = document.getElementById('review-only-btn');
+
+function getLastMistakeWords(chapter) {
+  const user = new URLSearchParams(location.search).get('user') || '';
+  if (!user || !chapter || !chaptersMap[chapter]) return null;   // null = 沒有紀錄
+  let history = [];
+  try { history = JSON.parse(localStorage.getItem('studyhub.history.' + user) || '[]'); }
+  catch (e) { return null; }
+  if (!Array.isArray(history)) return null;
+  const recs = history.filter(h => h && h.tool === 'vocab' && h.chapter === chapter);
+  if (recs.length === 0) return null;
+  const recent = recs.reduce((a, b) => (a.date > b.date ? a : b));
+  const listed = [].concat(
+    Array.isArray(recent.wrongList) ? recent.wrongList : [],
+    Array.isArray(recent.markedList) ? recent.markedList : []
+  );
+  const pool = chaptersMap[chapter];
+  const seen = new Set();
+  const words = [];
+  listed.forEach(w => {
+    const word = String((w && w.word) || '').trim();
+    if (!word || seen.has(word)) return;
+    seen.add(word);
+    // 優先用目前字庫裡的資料；字庫裡找不到才用紀錄裡的解釋
+    const row = pool.find(r => r.word === word);
+    if (row) words.push(row);
+    else if (w.correctDef) words.push({ chapter, word, def: String(w.correctDef), pos: '' });
+  });
+  return words;
+}
+
+function refreshReviewOnlyBtn() {
+  if (!reviewOnlyBtn) return;
+  const words = getLastMistakeWords(chapterSelect.value);
+  if (words === null) {
+    reviewOnlyBtn.disabled = true;
+    reviewOnlyBtn.textContent = '只考上次錯題 / 不熟（尚無紀錄）';
+  } else if (words.length === 0) {
+    reviewOnlyBtn.disabled = true;
+    reviewOnlyBtn.textContent = '只考上次錯題 / 不熟（上次全對 ✨）';
+  } else {
+    reviewOnlyBtn.disabled = false;
+    reviewOnlyBtn.textContent = '只考上次錯題 / 不熟（' + words.length + ' 題）';
+  }
+}
+
+reviewOnlyBtn.addEventListener('click', () => {
+  currentChapter = chapterSelect.value;
+  const words = getLastMistakeWords(currentChapter);
+  if (!words || words.length === 0) { refreshReviewOnlyBtn(); return; }
+  startQuiz(words, { mistakesOnly: true });
+});
+
+function startQuiz(words, opts) {
+  mistakesOnlyMode = !!(opts && opts.mistakesOnly);
+  lastQuizWords = words;
   // 為每個字產生題目（亂數 7 個錯誤選項，從同章節抽）
-  const chapterPool = words;
+  // 錯題模式只考少數幾個字，干擾選項仍從整個章節抽
+  const chapterPool = chaptersMap[currentChapter] || words;
   questions = shuffle(words).map(w => buildQuestion(w, chapterPool));
   qIndex = 0;
   stats = { correct: 0, wrong: 0, total: questions.length, wrongList: [] };
@@ -1121,7 +1202,8 @@ function startQuiz(words) {
   // 記錄考試開始時間
   window.__quizStartTime = Date.now();
   
-  document.getElementById('round-tag').textContent = 'FIRST ROUND';
+  document.getElementById('round-tag').textContent =
+    mistakesOnlyMode ? `錯題 / 不熟 · ${questions.length} 題` : 'FIRST ROUND';
   document.getElementById('round-tag').classList.remove('review');
   
   switchScreen('quiz-screen');
@@ -1358,7 +1440,8 @@ function showResult() {
   document.getElementById('r-wrong').textContent = pad(stats.wrong);
   document.getElementById('r-total').textContent = pad(stats.total);
   const pct = ((stats.correct / stats.total) * 100).toFixed(1);
-  document.getElementById('r-percent').textContent = `正確率 ${pct}%`;
+  document.getElementById('r-percent').textContent = `正確率 ${pct}%` +
+    (mistakesOnlyMode ? '（錯題複習，不列入紀錄）' : '');
   
   // 放屁次數 = 第一輪答錯的次數
   const fartEl = document.getElementById('fart-count');
@@ -1414,7 +1497,7 @@ function showResult() {
   }
 
   // === 寫入學習中心歷史紀錄 ===
-  if (window.QuizHistory && window.QuizHistory.enabled && stats.total > 0) {
+  if (!mistakesOnlyMode && window.QuizHistory && window.QuizHistory.enabled && stats.total > 0) {
     try {
       const durationSeconds = window.__quizStartTime
         ? Math.max(0, Math.round((Date.now() - window.__quizStartTime) / 1000))
@@ -1445,9 +1528,14 @@ function showResult() {
 }
 
 document.getElementById('retry-btn').addEventListener('click', () => {
-  startQuiz(chaptersMap[currentChapter]);
+  // 一般模式：整章再考；錯題模式：同一批錯題 / 不熟的字再考一次
+  if (mistakesOnlyMode) startQuiz(lastQuizWords, { mistakesOnly: true });
+  else startQuiz(chaptersMap[currentChapter]);
 });
 document.getElementById('back-btn').addEventListener('click', () => {
+  // 回主選單時更新「上次錯題」與按鈕（剛考完的成績要反映出來）
+  if (window.RecentWrong) window.RecentWrong.update('vocab', chapterSelect.value);
+  refreshReviewOnlyBtn();
   switchScreen('setup-screen');
 });
 
