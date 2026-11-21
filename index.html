@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>學習中心</title>
+<!-- App 圖示與全螢幕設定（加入主畫面用；沒有離線快取） -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="學習中心">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f4ede0">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root {
@@ -1308,10 +1317,16 @@ function showMainScreen() {
 }
 /* === 一次性題目搬移：把「淘氣阿珊」的作文題目複製/覆蓋到所有其他 profile ===
    - 學生的作文 + 老師評語都不會被動到，只動 prepared 題目
-   - 完成後設旗標，不會重複跑 */
+   - 完成後設旗標，不會重複跑
+   2026-11-21 停用：這次搬移在 2026 年 6 月已經做過並同步到 Gist。
+   新裝置（例如 iPhone 主畫面 App）的本機資料是空的、沒有旗標，
+   若先設定同步再選 Profile，會再跑一次並覆蓋其他人目前的作文題目。
+   現在一律只設旗標、不搬移，避免動到任何人的紀錄。 */
 async function maybeRunPromptMigration() {
   const MIGRATION_KEY = 'studyhub.promptsMigrated_v1';
   if (localStorage.getItem(MIGRATION_KEY)) return;
+  localStorage.setItem(MIGRATION_KEY, '1');
+  return;
 
   const MASTER = '淘氣阿珊';
   const syncOn = SyncManager.isEnabled();
